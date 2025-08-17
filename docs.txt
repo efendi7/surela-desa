@@ -1,0 +1,297 @@
+Tentu, saya akan pandu Anda membuat aplikasi **SURELA Desa** dari awal. Dokumentasi yang Anda berikan sudah sangat lengkap dan profesional, ini akan menjadi panduan utama kita.
+
+Kita akan mulai dari instalasi, membangun fitur pertama, dan saya akan memberikan kode serta saran untuk fitur selanjutnya.
+
+**Catatan Penting:** Saat ini (Agustus 2025), versi stabil terbaru adalah **Laravel 11**. Laravel 12 belum dirilis. Oleh karena itu, seluruh panduan ini akan menggunakan **Laravel 11**, yang teknologinya sangat mirip dan relevan dengan kebutuhan Anda.
+
+-----
+
+## Langkah 1: Persiapan dan Instalasi Proyek
+
+Ini adalah fondasi aplikasi Anda. Pastikan Anda sudah menginstal **Composer**, **Node.js & NPM**, serta **PHP 8.2+** di komputer Anda.
+
+### 1\. Buat Proyek Laravel Baru
+
+Buka terminal atau command prompt, lalu jalankan perintah ini untuk membuat proyek Laravel baru.
+
+```bash
+composer create-project laravel/laravel surela-desa
+```
+
+### 2\. Masuk ke Direktori Proyek
+
+```bash
+cd surela-desa
+```
+
+### 3\. Konfigurasi Database
+
+Buka file `.env` di root proyek Anda. Cari bagian konfigurasi database dan sesuaikan dengan pengaturan database (MySQL/MariaDB) Anda. Buat database baru bernama `surela_desa` melalui phpMyAdmin atau tools lainnya.
+
+```dotenv
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=surela_desa
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### 4\. Instalasi Laravel Breeze (untuk Autentikasi, Vue & Inertia)
+
+Laravel Breeze adalah cara tercepat untuk membangun sistem login dan registrasi lengkap dengan Vue dan Inertia.js.
+
+```bash
+# 1. Download package Breeze
+composer require laravel/breeze --dev
+
+# 2. Install scaffold Vue + Inertia.js
+php artisan breeze:install vue --ssr
+
+# 3. Install dependency NPM (frontend)
+npm install
+
+# 4. Compile aset frontend & jalankan server development
+npm run dev
+```
+
+Perintah `npm run dev` akan terus berjalan di satu terminal untuk meng-compile file Vue Anda secara otomatis.
+
+### 5\. Jalankan Migrasi Database
+
+Buka terminal **baru**, masuk ke direktori proyek, dan jalankan perintah ini untuk membuat tabel `users` dan tabel bawaan lainnya.
+
+```bash
+php artisan migrate
+```
+
+### 6\. Jalankan Server Development Laravel
+
+Masih di terminal kedua, jalankan server PHP.
+
+```bash
+php artisan serve
+```
+
+Sekarang, buka browser Anda di `http://127.0.0.1:8000`. Anda akan melihat halaman selamat datang Laravel dengan tombol **Login** dan **Register** di pojok kanan atas. Coba daftar dan login. Selamat, fondasi aplikasi Anda sudah selesai\! 🚀
+
+-----
+
+## Langkah 2: Struktur Folder Laravel & Vue (Inertia.js)
+
+Memahami struktur folder sangat penting. Berikut adalah folder utama yang akan sering Anda gunakan:
+
+```plaintext
+surela-desa/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/  # Logika untuk handle request (misal: PengajuanController.php)
+│   │   └── Middleware/   # Middleware untuk filter request (misal: cek admin)
+│   └── Models/           # Representasi tabel database (misal: User.php, PengajuanSurat.php)
+│
+├── database/
+│   └── migrations/       # File untuk membuat/mengubah struktur tabel database
+│
+├── resources/
+│   ├── js/
+│   │   ├── Components/   # Komponen Vue kecil (misal: Button.vue, Input.vue)
+│   │   ├── Layouts/      # Layout utama (misal: AuthenticatedLayout.vue)
+│   │   └── Pages/        # Komponen Vue untuk setiap halaman (misal: Dashboard.vue, Auth/Login.vue)
+│   └── views/
+│       └── app.blade.php # File Blade PHP utama yang me-render Inertia
+│
+└── routes/
+    └── web.php           # Definisi URL/rute aplikasi Anda
+```
+
+-----
+
+## Langkah 3: Fitur Pertama yang Harus Dibuat: Autentikasi & Kustomisasi User
+
+**Mengapa ini dulu?** Sebelum warga bisa mengajukan surat dan admin bisa memprosesnya, sistem harus bisa membedakan siapa **Admin** dan siapa **Warga**.
+
+Laravel Breeze sudah membuatkan kita sistem login dan register. Sekarang kita perlu memodifikasinya sesuai kebutuhan di dokumentasi Anda.
+
+### 1\. Kustomisasi Tabel `users`
+
+Kita perlu menambahkan kolom baru di tabel `users` seperti `nik`, `phone`, dan `role`.
+
+**A. Buat File Migrasi Baru**
+Jalankan perintah ini di terminal:
+
+```bash
+php artisan make:migration add_custom_fields_to_users_table --table=users
+```
+
+**B. Isi File Migrasi**
+Buka file migrasi yang baru dibuat di `database/migrations/xxxx_add_custom_fields_to_users_table.php` dan tambahkan kolom-kolom berikut di dalam method `up()`:
+
+```php
+// database/migrations/xxxx_add_custom_fields_to_users_table.php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('nik', 16)->unique()->nullable()->after('email');
+            $table->string('phone', 15)->nullable()->after('nik');
+            $table->enum('role', ['admin', 'warga'])->default('warga')->after('phone');
+            $table->text('address')->nullable()->after('role');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn(['nik', 'phone', 'role', 'address']);
+        });
+    }
+};
+```
+
+**C. Jalankan Ulang Migrasi**
+Untuk menerapkan perubahan ini, jalankan:
+
+```bash
+php artisan migrate:fresh
+```
+
+*(Perintah ini akan menghapus semua data lama dan menjalankan ulang semua migrasi. Lakukan ini karena kita masih dalam tahap development).*
+
+### 2\. Update Model `User`
+
+Buka file `app/Models/User.php` dan tambahkan kolom baru ke properti `$fillable` agar bisa diisi secara massal.
+
+```php
+// app/Models/User.php
+
+protected $fillable = [
+    'name',
+    'email',
+    'password',
+    'nik',      // Tambahkan ini
+    'phone',    // Tambahkan ini
+    'role',     // Tambahkan ini
+    'address',  // Tambahkan ini
+];
+```
+
+### 3\. Update Halaman Registrasi (Frontend)
+
+Kita perlu menambahkan input NIK, Nomor HP, dan Alamat di form registrasi.
+
+Buka file `resources/js/Pages/Auth/Register.vue` dan tambahkan `TextInput` untuk field baru tersebut.
+
+```vue
+<script setup>
+// ... (bagian script setup jangan diubah)
+const form = useForm({
+    name: '',
+    email: '',
+    nik: '', // Tambahkan ini
+    phone: '', // Tambahkan ini
+    address: '', // Tambahkan ini
+    password: '',
+    password_confirmation: '',
+});
+// ...
+</script>
+
+<template>
+    <form @submit.prevent="submit">
+        <div>
+            <InputLabel for="name" value="Name" />
+            <TextInput id="name" type="text" v-model="form.name" required autofocus />
+            <InputError :message="form.errors.name" />
+        </div>
+
+        <div class="mt-4">
+            <InputLabel for="nik" value="NIK (Nomor Induk Kependudukan)" />
+            <TextInput id="nik" type="text" v-model="form.nik" required />
+            <InputError :message="form.errors.nik" />
+        </div>
+
+        <div class="mt-4">
+            <InputLabel for="phone" value="Nomor HP (WhatsApp)" />
+            <TextInput id="phone" type="text" v-model="form.phone" required />
+            <InputError :message="form.errors.phone" />
+        </div>
+        
+        <div class="mt-4">
+            <InputLabel for="address" value="Alamat Lengkap" />
+            <TextInput id="address" type="text" v-model="form.address" required />
+            <InputError :message="form.errors.address" />
+        </div>
+        <div class="mt-4">
+            <InputLabel for="email" value="Email" />
+            <TextInput id="email" type="email" v-model="form.email" required />
+            <InputError :message="form.errors.email" />
+        </div>
+
+        </form>
+</template>
+```
+
+### 4\. Update Controller Registrasi (Backend)
+
+Terakhir, kita perlu memberitahu Laravel cara menyimpan data baru ini saat user mendaftar.
+
+Buka file `app/Http/Controllers/Auth/RegisteredUserController.php` dan update method `store()`.
+
+```php
+// app/Http/Controllers/Auth/RegisteredUserController.php
+
+public function store(Request $request): RedirectResponse
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+        'nik' => 'required|string|digits:16|unique:'.User::class, // Tambahkan validasi
+        'phone' => 'required|string|max:15', // Tambahkan validasi
+        'address' => 'required|string|max:255', // Tambahkan validasi
+        'password' => ['required', 'confirmed', Rules\Password::defaults()],
+    ]);
+
+    $user = User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'nik' => $request->nik, // Tambahkan data
+        'phone' => $request->phone, // Tambahkan data
+        'address' => $request->address, // Tambahkan data
+        'password' => Hash::make($request->password),
+    ]);
+
+    event(new Registered($user));
+
+    Auth::login($user);
+
+    return redirect(route('dashboard', absolute: false));
+}
+```
+
+**Selesai\!** Sekarang fitur autentikasi Anda sudah sesuai dengan spesifikasi. Pengguna yang mendaftar akan memiliki data NIK, HP, dan Alamat, dengan `role` default 'warga'.
+
+-----
+
+## ✨ Saran Fitur Selanjutnya untuk Dikerjakan
+
+Setelah autentikasi solid, langkah logis berikutnya adalah **"Modul Manajemen Profil Desa dan Jenis Surat (CRUD oleh Admin)"**.
+
+**Mengapa ini selanjutnya?**
+
+1.  **Dasar dari Semua Surat:** Sebelum warga bisa mengajukan surat, sistem harus tahu informasi dasar desa (nama, alamat, logo) yang akan dicetak di header surat.
+2.  **Pilihan untuk Warga:** Admin harus mendefinisikan jenis-jenis surat yang tersedia (misal: Surat Keterangan Domisili, Surat Keterangan Usaha) sebelum warga bisa memilihnya di form pengajuan.
+
+**Langkah-langkah pengerjaannya:**
+
+1.  **Buat Model & Migrasi:** Buat `DesaProfile` (cukup satu baris data) dan `JenisSurat` (bisa banyak data).
+2.  **Buat Controller:** Buat `DesaProfileController` dan `JenisSuratController` khusus untuk admin.
+3.  **Buat Rute:** Definisikan rute di `routes/web.php` yang hanya bisa diakses oleh admin (gunakan middleware).
+4.  **Buat Halaman Vue:** Buat halaman di `resources/js/Pages/Admin/` untuk mengelola profil desa dan CRUD jenis surat.
+
+Dengan menyelesaikan fitur ini, Anda sudah membangun fondasi utama aplikasi. Fitur pengajuan surat oleh warga akan menjadi jauh lebih mudah untuk dibuat setelahnya. Selamat mencoba\!
