@@ -28,12 +28,16 @@ const showConfirmModal = ref(false);
 const userToProcess = ref(null);
 const confirmAction = ref('');
 
+// State untuk preview foto
+const photoPreview = ref(null);
+
 const form = useForm({
     id: null,
     name: '', email: '', nik: '', phone: '', role: 'warga', address: '',
     tempat_lahir: '', tanggal_lahir: '', jenis_kelamin: 'Laki-laki', pekerjaan: '',
     agama: 'Islam', status_perkawinan: 'Belum Menikah', kewarganegaraan: 'Indonesia',
     password: '', password_confirmation: '',
+    profile_photo: null, // Properti untuk menampung file foto
 });
 
 // --- COMPUTED PROPERTIES ---
@@ -45,7 +49,6 @@ const modalTitle = computed(() => {
     return 'Edit Data Pengguna';
 });
 
-// Computed property baru untuk deskripsi header
 const modalDescription = computed(() => {
     if (modalMode.value === 'create') return 'Isi detail lengkap pengguna yang akan ditambahkan.';
     if (modalMode.value === 'view') return 'Lihat detail pengguna. Klik edit untuk mengubah.';
@@ -57,7 +60,7 @@ const modalDescription = computed(() => {
 const openCreateModal = () => {
     modalMode.value = 'create';
     selectedUser.value = null;
-    form.reset(); // Membersihkan form dan error
+    form.reset();
     showModal.value = true;
 };
 
@@ -71,6 +74,17 @@ const openViewModal = (user) => {
 const closeModal = () => {
     showModal.value = false;
     form.reset();
+    photoPreview.value = null; // Reset preview saat modal ditutup
+};
+
+const updatePhotoPreview = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        photoPreview.value = e.target.result;
+    };
+    reader.readAsDataURL(file);
 };
 
 const createUser = () => {
@@ -81,9 +95,18 @@ const createUser = () => {
 };
 
 const updateUser = () => {
-    form.put(route('admin.users.update', selectedUser.value.id), {
+    // File uploads tidak bekerja dengan PUT, gunakan POST dengan method spoofing
+    router.post(route('admin.users.update', selectedUser.value.id), {
+        _method: 'put',
+        ...form.data(), // Kirim semua data dari form
+    }, {
         preserveScroll: true,
         onSuccess: () => closeModal(),
+        onError: () => {
+            if (form.errors.profile_photo) {
+                form.reset('profile_photo');
+            }
+        },
     });
 };
 
@@ -92,7 +115,8 @@ const switchToEditMode = () => {
 };
 
 const cancelEdit = () => {
-    form.reset(); // Kembalikan data form ke kondisi awal sebelum diedit
+    form.reset();
+    photoPreview.value = null;
     modalMode.value = 'view';
 };
 
@@ -111,7 +135,7 @@ const handleConfirm = () => {
     const actionRoute = confirmAction.value === 'freeze'
         ? route('admin.users.destroy', userToProcess.value.id)
         : route('admin.users.restore', userToProcess.value.id);
-    
+
     const method = confirmAction.value === 'freeze' ? 'delete' : 'post';
 
     router[method](actionRoute, {
@@ -137,7 +161,6 @@ const handleConfirm = () => {
                             <PrimaryButton @click="openCreateModal">Tambah Pengguna</PrimaryButton>
                         </div>
 
-                        <!-- Flash Messages -->
                         <div v-if="flash?.success" class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded" role="alert">
                             {{ flash.success }}
                         </div>
@@ -145,39 +168,41 @@ const handleConfirm = () => {
                             {{ flash.error }}
                         </div>
 
-                        <!-- Users Table -->
                         <div class="overflow-x-auto">
                             <table class="min-w-full bg-white">
                                 <thead class="bg-gray-200">
                                     <tr>
-                                        <th class="py-2 px-4 text-left">Nama</th>
-                                        <th class="py-2 px-4 text-left">Email & NIK</th>
-                                        <th class="py-2 px-4 text-left">Role</th>
-                                        <th class="py-2 px-4 text-center">Status</th>
-                                        <th class="py-2 px-4 text-left">Aksi</th>
+                                        <th class="py-3 px-6 text-left">Pengguna</th>
+                                        <th class="py-3 px-6 text-left">Role</th>
+                                        <th class="py-3 px-6 text-center">Status</th>
+                                        <th class="py-3 px-6 text-left">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-for="user in users" :key="user.id" class="border-b hover:bg-gray-50">
-                                        <td class="py-2 px-4">{{ user.name }}</td>
-                                        <td class="py-2 px-4 text-sm">
-                                            <div class="font-medium text-gray-800">{{ user.email }}</div>
-                                            <div class="text-gray-500">NIK: {{ user.nik }}</div>
+                                        <td class="py-4 px-6">
+                                            <div class="flex items-center space-x-4">
+                                                <img :src="user.profile_photo_url" :alt="user.name" class="w-11 h-11 rounded-full object-cover border-2 border-gray-200">
+                                                <div>
+                                                    <div class="font-medium text-gray-900">{{ user.name }}</div>
+                                                    <div class="text-sm text-gray-500">{{ user.email }}</div>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td class="py-2 px-4 capitalize">{{ user.role }}</td>
-                                        <td class="py-2 px-4 text-center">
+                                        <td class="py-4 px-6 capitalize">{{ user.role }}</td>
+                                        <td class="py-4 px-6 text-center">
                                             <span :class="user.is_frozen ? 'bg-gray-200 text-gray-800' : 'bg-green-100 text-green-800'" class="px-2 py-1 text-xs font-semibold rounded-full">
                                                 {{ user.is_frozen ? 'Dibekukan' : 'Aktif' }}
                                             </span>
                                         </td>
-                                        <td class="py-2 px-4 whitespace-nowrap">
+                                        <td class="py-4 px-6 whitespace-nowrap">
                                             <button @click="openViewModal(user)" class="text-blue-600 hover:text-blue-900 mr-4 font-medium">Detail</button>
                                             <button v-if="!user.is_frozen" @click="openConfirmModal(user, 'freeze')" class="text-red-600 hover:text-red-900 font-medium">Bekukan</button>
                                             <button v-else @click="openConfirmModal(user, 'restore')" class="text-green-600 hover:text-green-900 font-medium">Aktifkan</button>
                                         </td>
                                     </tr>
                                     <tr v-if="users.length === 0">
-                                        <td colspan="5" class="py-4 px-4 text-center text-gray-500">Belum ada data pengguna.</td>
+                                        <td colspan="4" class="py-4 px-4 text-center text-gray-500">Belum ada data pengguna.</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -187,19 +212,15 @@ const handleConfirm = () => {
             </div>
         </div>
 
-        <!-- Main Dynamic Modal (Create, View, Edit) -->
         <Modal :show="showModal" @close="closeModal" max-width="4xl">
             <div class="flex flex-col max-h-[90vh]">
-                <!-- Modal Header -->
                 <div class="px-6 py-4 border-b border-gray-200 rounded-t-lg">
                     <h2 class="text-lg font-medium text-gray-900">{{ modalTitle }}</h2>
                     <p class="mt-1 text-sm text-gray-600">{{ modalDescription }}</p>
                 </div>
 
-                <!-- Modal Body (Scrollable) -->
                 <div class="px-6 py-6 bg-gray-50 flex-grow overflow-y-auto">
                     <form @submit.prevent="modalMode === 'edit' ? updateUser() : createUser()" class="space-y-8">
-                        <!-- Data Pribadi Section -->
                         <div class="bg-white p-6 rounded-lg shadow-sm border">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4">Data Pribadi</h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -275,10 +296,20 @@ const handleConfirm = () => {
                             </div>
                         </div>
 
-                        <!-- Data Akun Section -->
                         <div class="bg-white p-6 rounded-lg shadow-sm border">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4">Informasi Akun</h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="md:col-span-2">
+                                    <InputLabel for="profile_photo" value="Foto Profil (Opsional)" />
+                                    <div v-if="modalMode !== 'create' && !photoPreview" class="mt-2">
+                                        <img :src="selectedUser?.profile_photo_url" class="rounded-full h-20 w-20 object-cover">
+                                    </div>
+                                    <div v-if="photoPreview" class="mt-2">
+                                        <span class="block rounded-full w-20 h-20 bg-cover bg-no-repeat bg-center" :style="'background-image: url(\'' + photoPreview + '\');'"></span>
+                                    </div>
+                                    <input v-if="modalMode !== 'view'" type="file" id="profile_photo" class="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100" @input="form.profile_photo = $event.target.files[0]; updatePhotoPreview($event)">
+                                    <InputError class="mt-1" :message="form.errors.profile_photo" />
+                                </div>
                                 <div>
                                     <InputLabel for="email" value="Email" />
                                     <TextInput id="email" type="email" class="mt-1 block w-full" v-model="form.email" :disabled="isFormDisabled" />
@@ -308,7 +339,6 @@ const handleConfirm = () => {
                     </form>
                 </div>
 
-                <!-- Modal Footer -->
                 <div class="px-6 py-4 bg-gray-50 border-t flex justify-end space-x-3 rounded-b-lg">
                     <template v-if="modalMode === 'create'">
                         <SecondaryButton @click="closeModal">Batal</SecondaryButton>
@@ -326,13 +356,12 @@ const handleConfirm = () => {
             </div>
         </Modal>
 
-        <!-- Confirmation Modal -->
-        <ConfirmUserModal 
-            :show="showConfirmModal" 
-            :user="userToProcess" 
-            :action="confirmAction" 
-            @close="closeConfirmModal" 
-            @confirm="handleConfirm" 
+        <ConfirmUserModal
+            :show="showConfirmModal"
+            :user="userToProcess"
+            :action="confirmAction"
+            @close="closeConfirmModal"
+            @confirm="handleConfirm"
         />
     </AuthenticatedLayout>
 </template>

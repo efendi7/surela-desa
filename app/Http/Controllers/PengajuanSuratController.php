@@ -10,66 +10,71 @@ use Inertia\Inertia;
 
 class PengajuanSuratController extends Controller
 {
+    /**
+     * Menampilkan halaman utama pengajuan surat untuk warga.
+     * Warga bisa melihat riwayat pengajuan mereka dan membuat pengajuan baru.
+     */
     public function index()
     {
         $user = Auth::user();
 
         return Inertia::render('Pengajuan/Index', [
+            // Mengambil daftar jenis surat yang bisa diajukan
             'jenisSuratTersedia' => JenisSurat::all(['id', 'nama_surat', 'syarat']),
+            
+            // Mengambil riwayat pengajuan milik user yang sedang login
             'riwayatPengajuan' => PengajuanSurat::where('user_id', $user->id)
-                                    ->with('jenisSurat:id,nama_surat')
-                                    ->latest()
+                                    ->with('jenisSurat:id,nama_surat') // Ambil relasi nama surat
+                                    ->latest() // Urutkan dari yang terbaru
                                     ->get(),
         ]);
     }
 
+    /**
+     * Menyimpan pengajuan surat baru yang dibuat oleh warga.
+     */
     public function store(Request $request)
     {
         $user = Auth::user();
 
         $request->validate([
             'jenis_surat_id' => 'required|exists:jenis_surats,id',
+            // Validasi untuk file lampiran bisa ditambahkan di sini jika diperlukan
+            // 'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048'
         ]);
 
-        // cari nomor terakhir bulan ini
-        $lastNumber = PengajuanSurat::whereYear('created_at', now()->year)
-                        ->whereMonth('created_at', now()->month)
-                        ->max('increment_nomor');
-
-        $newNumber = $lastNumber ? $lastNumber + 1 : 1;
-
-        // format nomor surat: 001/SKD/08/2025
-        $nomorSurat = str_pad($newNumber, 3, '0', STR_PAD_LEFT)
-                    . '/SKD/' . date('m') . '/' . date('Y');
-
-        // Snapshot data pemohon saat ini
+        // Snapshot data pemohon saat itu juga
         $dataPemohon = [
-            'nama'   => $user->name,
-            'nik'    => $user->nik,
-            'email'  => $user->email,
-            'phone'  => $user->phone,
-            'address'=> $user->address,
+            'nama' => $user->name,
+            'nik' => $user->nik,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'address' => $user->address,
         ];
 
         PengajuanSurat::create([
-            'user_id'         => $user->id,
-            'jenis_surat_id'  => $request->jenis_surat_id,
-            'data_pemohon'    => $dataPemohon,
-            'status'          => 'pending',
-            'lampiran'        => null,
-            'increment_nomor' => $newNumber,
-            'nomor_surat'     => $nomorSurat,
+            'user_id' => $user->id,
+            'jenis_surat_id' => $request->jenis_surat_id,
+            'data_pemohon' => $dataPemohon,
+            'status' => 'pending',
+            // Logika untuk upload file akan ditambahkan nanti
+            'lampiran' => null, 
         ]);
 
         return redirect()->route('pengajuan.index')->with('success', 'Pengajuan surat berhasil dikirim.');
     }
 
+    /**
+     * Membatalkan pengajuan surat yang statusnya masih 'pending'.
+     */
     public function destroy(PengajuanSurat $pengajuanSurat)
     {
+        // Pastikan user hanya bisa menghapus pengajuannya sendiri
         if ($pengajuanSurat->user_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
 
+        // Hanya pengajuan 'pending' yang bisa dibatalkan
         if ($pengajuanSurat->status !== 'pending') {
             return redirect()->route('pengajuan.index')->with('error', 'Pengajuan ini sudah diproses dan tidak bisa dibatalkan.');
         }
