@@ -15,15 +15,16 @@ class ProsesPengajuanController extends Controller
     /**
      * Menampilkan daftar semua pengajuan yang masuk untuk admin.
      */
-    public function index()
-    {
-        return Inertia::render('Admin/Pengajuan/Index', [
-            'pengajuanList' => PengajuanSurat::with(['user:id,name', 'jenisSurat:id,nama_surat,slug'])
-                ->latest()
-                ->get(),
-        ]);
-    }
-
+   public function index()
+{
+    return Inertia::render('Admin/Pengajuan/Index', [
+        // HANYA TAMPILKAN PENGAJUAN YANG MASIH PERLU DIPROSES
+        'pengajuanList' => PengajuanSurat::with(['user:id,name', 'jenisSurat:id,nama_surat,slug'])
+            ->whereIn('status', ['pending', 'diproses']) // Perubahan di sini
+            ->latest()
+            ->get(),
+    ]);
+}
     /**
      * Mengubah status pengajuan.
      */
@@ -85,4 +86,17 @@ class ProsesPengajuanController extends Controller
 
         return $pdf->stream($namaFile);
     }
+
+    public function riwayat()
+{
+    // Mengambil data pengajuan yang statusnya 'selesai' atau 'ditolak'
+    $riwayatPengajuan = PengajuanSurat::with(['user:id,name', 'jenisSurat:id,nama_surat,slug'])
+        ->whereIn('status', ['selesai', 'ditolak'])
+        ->latest()
+        ->get();
+
+    return Inertia::render('Admin/Pengajuan/Riwayat', [
+        'riwayatPengajuan' => $riwayatPengajuan,
+    ]);
+}
 }
