@@ -68,10 +68,15 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\IsAdmin::class])
     // Manajemen Jenis Surat
     Route::resource('jenis-surat', JenisSuratController::class)->except(['create', 'show', 'edit']);
 
+     Route::get('/template/download/{jenisSurat}', [JenisSuratController::class, 'downloadTemplate'])
+        ->name('template.download');
+
     // Proses Pengajuan (NAMA SUDAH DIPERBAIKI untuk menghindari konflik)
     Route::get('/proses-pengajuan', [ProsesPengajuanController::class, 'index'])->name('proses.index');
     Route::patch('/proses-pengajuan/{pengajuanSurat}', [ProsesPengajuanController::class, 'update'])->name('proses.update');
     Route::get('/proses-pengajuan/{pengajuanSurat}/cetak', [ProsesPengajuanController::class, 'cetakPdf'])->name('proses.cetak');
+    Route::get('/proses-pengajuan/{pengajuanSurat}/cetak-word', [ProsesPengajuanController::class, 'cetakWord'])
+    ->name('proses.cetakWord');
 
     // Riwayat Pengajuan
     Route::get('/pengajuan/riwayat', [ProsesPengajuanController::class, 'riwayat'])->name('pengajuan.riwayat');

@@ -17,8 +17,9 @@ class PengajuanSurat extends Model
         'lampiran',
         'status',
         'keterangan_admin',
-        'increment_nomor',   // tambahkan ini
-        'nomor_surat',       // tambahkan ini
+        'increment_nomor',
+        'nomor_surat',
+        'file_word',  
     ];
 
     protected $casts = [

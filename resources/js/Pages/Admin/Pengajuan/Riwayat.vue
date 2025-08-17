@@ -71,7 +71,7 @@ const getStatusClass = (status) => ({
                                         </td>
                                         <td class="py-2 px-4">
                                             <button @click="openDetailModal(pengajuan)" class="text-indigo-600 hover:text-indigo-900 mr-4">Detail</button>
-                                            <a v-if="pengajuan.status === 'selesai'" :href="route('admin.pengajuan.cetak', pengajuan.id)" target="_blank" class="text-green-600 hover:text-green-900">
+                                            <a v-if="pengajuan.status === 'selesai'" :href="route('admin.proses.cetak', pengajuan.id)" target="_blank" class="text-green-600 hover:text-green-900">
                                                 Cetak
                                             </a>
                                             <span v-else class="text-gray-400 cursor-not-allowed">Cetak</span>

@@ -55,4 +55,26 @@ class JenisSuratController extends Controller
         $jenisSurat->delete();
         return redirect()->route('admin.jenis-surat.index')->with('success', 'Jenis surat berhasil dihapus.');
     }
+   public function downloadTemplate($id)
+{
+    $jenisSurat = JenisSurat::findOrFail($id);
+
+    // Ambil nama file template dari database
+    $fileName = $jenisSurat->template_file ?? 'general_template.docx';
+
+    // Path file template
+    $path = storage_path("app/templates/{$fileName}");
+
+    // Jika file tidak ditemukan, fallback ke general template
+    if (!file_exists($path)) {
+        $path = storage_path("app/templates/general_template.docx");
+    }
+
+    if (!file_exists($path)) {
+        return back()->with('error', 'Template surat tidak ditemukan.');
+    }
+
+    return response()->download($path, "Template-{$jenisSurat->nama}.docx");
+}
+
 }
