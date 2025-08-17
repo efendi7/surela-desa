@@ -24,5 +24,7 @@ class ProfilDesa extends Model
         'telepon',
         'nama_kepala_desa',
         'logo',
+        'kode_pos',
+
     ];
 }

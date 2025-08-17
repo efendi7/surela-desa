@@ -31,34 +31,42 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        return [
-            ...parent::share($request),
+        return array_merge(parent::share($request), [
             'auth' => [
-                'user' => $request->user(),
+                'user' => $request->user() ? [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'nik' => $request->user()->nik,
+                    'phone' => $request->user()->phone,
+                    'address' => $request->user()->address,
+                    'tempat_lahir' => $request->user()->tempat_lahir,
+                    // PERBAIKAN: Format tanggal lahir ke Y-m-d agar sesuai dengan input HTML
+                    'tanggal_lahir' => $request->user()->tanggal_lahir ? $request->user()->tanggal_lahir->format('Y-m-d') : null,
+                    'jenis_kelamin' => $request->user()->jenis_kelamin,
+                    'role' => $request->user()->role,
+                ] : null,
             ],
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
-            // Add flash messages here
             'flash' => [
-                'success' => $request->session()->get('success'),
-                'error' => $request->session()->get('error'),
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
             ],
             'profilDesa' => function () {
-                // Mengambil data profil, atau membuat data default jika belum ada.
-                // Ini memastikan data selalu tersedia.
-                 return ProfilDesa::firstOrCreate(['id' => 1], [
+                return ProfilDesa::firstOrCreate(['id' => 1], [
                     'nama_desa' => 'SURELA Desa',
-                    'nama_kecamatan' => 'Nama Kecamatan', // Diubah
-                    'nama_kabupaten' => 'Nama Kabupaten', // Diubah
-                    'nama_provinsi' => 'Nama Provinsi',   // Ditambahkan
+                    'nama_kecamatan' => 'Nama Kecamatan',
+                    'nama_kabupaten' => 'Nama Kabupaten',
+                    'nama_provinsi' => 'Nama Provinsi',
                     'alamat' => 'Alamat lengkap kantor desa.',
                     'email' => 'email@desa.id',
                     'telepon' => '081234567890',
                     'nama_kepala_desa' => 'Nama Kepala Desa',
                 ]);
             },
-        ];
+        ]);
     }
 }

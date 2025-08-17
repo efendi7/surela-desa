@@ -21,10 +21,18 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'nik', // Tambahkan ini
-        'phone', // Tambahkan ini
-        'role', // Tambahkan ini
-        'address', // Tambahkan ini
+        'nik',
+        'phone',
+        'role',
+        'address',
+        'tempat_lahir',    // Tambahkan ini
+        'tanggal_lahir',   // Tambahkan ini
+        'jenis_kelamin',   // Tambahkan ini
+        'pekerjaan',
+        'agama',
+        'status_perkawinan',
+        'kewarganegaraan',
+
     ];
 
     /**
@@ -44,6 +52,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'tanggal_lahir' => 'date', // Tambahkan cast untuk tanggal
         ];
     }
 }

@@ -18,7 +18,7 @@ class ProsesPengajuanController extends Controller
     public function index()
     {
         return Inertia::render('Admin/Pengajuan/Index', [
-            'pengajuanList' => PengajuanSurat::with(['user:id,name', 'jenisSurat:id,nama_surat,slug']) // Tambahkan slug
+            'pengajuanList' => PengajuanSurat::with(['user:id,name', 'jenisSurat:id,nama_surat,slug'])
                 ->latest()
                 ->get(),
         ]);
@@ -47,24 +47,24 @@ class ProsesPengajuanController extends Controller
      */
     public function cetakPdf(PengajuanSurat $pengajuanSurat)
     {
-        // 1. Validasi Status: Pastikan surat hanya bisa dicetak jika statusnya 'selesai'.
-        // Baris ini diaktifkan kembali untuk keamanan.
+        // PERBAIKAN 1: Memuat relasi 'user' dan 'jenisSurat' secara eksplisit.
+        // Ini memastikan semua data dari tabel 'users' (seperti NIK, tempat lahir, dll.) tersedia di template.
+        $pengajuanSurat->load(['user', 'jenisSurat']);
+
+        // 1. Validasi Status
         if ($pengajuanSurat->status !== 'selesai') {
             return redirect()->back()->with('error', 'Surat hanya bisa dicetak jika statusnya sudah selesai.');
         }
 
-        // Mengambil data profil desa untuk digunakan di kop surat
+        // Mengambil data profil desa
         $profilDesa = ProfilDesa::first();
         if (!$profilDesa) {
             return redirect()->back()->with('error', 'Profil desa belum diatur.');
         }
 
-        // 2. Logika Template Dinamis: Memilih template berdasarkan slug jenis surat.
-        // Pastikan Anda memiliki kolom 'slug' di tabel 'jenis_surats'.
-        // Contoh slug: 'surat-keterangan-domisili', 'surat-keterangan-usaha', dll.
+        // 2. Logika Template Dinamis
         $viewName = 'surat.' . $pengajuanSurat->jenisSurat->slug;
 
-        // Cek apakah file view template-nya ada
         if (!view()->exists($viewName)) {
             return redirect()->back()->with('error', "Template untuk surat '{$pengajuanSurat->jenisSurat->nama_surat}' tidak ditemukan.");
         }
@@ -73,16 +73,16 @@ class ProsesPengajuanController extends Controller
         $data = [
             'pengajuan' => $pengajuanSurat,
             'profilDesa' => $profilDesa,
-            'tanggal' => now()->translatedFormat('d F Y'), // Format tanggal dalam Bahasa Indonesia
+            'tanggal' => now()->translatedFormat('d F Y'),
         ];
 
         $pdf = Pdf::loadView($viewName, $data);
         
-        // 3. Nama File Dinamis: Membuat nama file PDF sesuai jenis surat dan nama pemohon.
-        $namaPemohonSlug = Str::slug($pengajuanSurat->data_pemohon['nama'] ?? 'pemohon');
+        // PERBAIKAN 2: Menyelaraskan nama pemohon untuk nama file.
+        // Menggunakan data dari relasi 'user', sama seperti di template surat.
+        $namaPemohonSlug = Str::slug($pengajuanSurat->user->name ?? 'pemohon');
         $namaFile = $pengajuanSurat->jenisSurat->slug . '-' . $namaPemohonSlug . '.pdf';
 
-        // Menggunakan stream() agar PDF langsung tampil di browser
         return $pdf->stream($namaFile);
     }
 }

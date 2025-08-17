@@ -23,6 +23,7 @@ const form = useForm({
     nama_kecamatan: props.profilDesa.nama_kecamatan || '',
     nama_kabupaten: props.profilDesa.nama_kabupaten || '',
     nama_provinsi: props.profilDesa.nama_provinsi || '',
+    kode_pos: props.profilDesa.kode_pos || '',
     alamat: props.profilDesa.alamat,
     email: props.profilDesa.email,
     telepon: props.profilDesa.telepon,
@@ -115,6 +116,18 @@ const submitUpdate = () => {
                             <div><strong class="block text-gray-500">Kecamatan</strong> {{ profilDesa.nama_kecamatan || '-' }}</div>
                             <div><strong class="block text-gray-500">Kabupaten</strong> {{ profilDesa.nama_kabupaten || '-' }}</div>
                             <div><strong class="block text-gray-500">Provinsi</strong> {{ profilDesa.nama_provinsi || '-' }}</div>
+                            <div><strong class="block text-gray-500">Kode Pos</strong> {{ profilDesa.kode_pos || '-' }}</div>
+                            <div>
+  <strong class="block text-gray-500">Email</strong>
+  {{ profilDesa.email || '-' }}
+</div>
+
+<div>
+  <strong class="block text-gray-500">Telepon</strong>
+  {{ profilDesa.telepon || '-' }}
+</div>
+                            
+
                             <div class="md:col-span-2"><strong class="block text-gray-500">Nama Kepala Desa</strong> {{ profilDesa.nama_kepala_desa }}</div>
                         </div>
                     </div>
@@ -160,6 +173,14 @@ const submitUpdate = () => {
                                     <TextInput id="nama_provinsi" v-model="form.nama_provinsi" type="text" class="mt-1 block w-full" />
                                     <InputError :message="form.errors.nama_provinsi" class="mt-2" />
                                 </div>
+                                <div>
+    <InputLabel for="kode_pos" value="Kode Pos" />
+    <TextInput id="kode_pos" v-model="form.kode_pos" type="text" class="mt-1 block w-full" />
+    <InputError :message="form.errors.kode_pos" class="mt-2" />
+</div>
+
+
+
                                 <div>
                                     <InputLabel for="nama_kepala_desa" value="Nama Kepala Desa" />
                                     <TextInput id="nama_kepala_desa" v-model="form.nama_kepala_desa" type="text" class="mt-1 block w-full" />

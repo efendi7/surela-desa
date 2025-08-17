@@ -25,6 +25,7 @@ class ProfilDesaController extends Controller
                 'nama_kecamatan' => 'Nama Kecamatan',
                 'nama_kabupaten' => 'Nama Kabupaten',
                 'nama_provinsi' => 'Nama Provinsi',
+                 'kode_pos' => '12345',
                 'alamat' => 'Alamat lengkap kantor desa.',
                 'email' => 'email@desa.id',
                 'telepon' => '081234567890',
@@ -51,6 +52,7 @@ class ProfilDesaController extends Controller
             'nama_kecamatan' => 'required|string|max:255',
             'nama_kabupaten' => 'required|string|max:255',
             'nama_provinsi' => 'required|string|max:255',
+            'kode_pos' => 'nullable|string|max:10', // 👈 tambahkan ini
             'alamat' => 'required|string|max:1000',
             'email' => 'required|email|max:255',
             'telepon' => 'required|string|max:20',
