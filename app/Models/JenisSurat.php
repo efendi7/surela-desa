@@ -30,6 +30,14 @@ class JenisSurat extends Model
         'syarat' => 'array',
     ];
 
-    // Method booted() dan logika pembuatan slug/kode_surat otomatis telah dihapus
-    // karena sudah tidak diperlukan lagi.
+    /**
+     * Definisikan relasi one-to-many ke Pengajuan.
+     * Sebuah JenisSurat dapat memiliki banyak Pengajuan.
+     */
+    public function pengajuan()
+    {
+        // Pastikan 'jenis_surat_id' adalah nama foreign key yang benar
+        // di dalam tabel 'pengajuans' Anda.
+        return $this->hasMany(PengajuanSurat::class, 'jenis_surat_id');
+    }
 }

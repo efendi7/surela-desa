@@ -7,21 +7,71 @@ use App\Models\PengajuanSurat;
 use App\Models\ProfilDesa;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use PhpOffice\PhpWord\IOFactory;
-use PhpOffice\PhpWord\PhpWord;
 use Illuminate\Support\Str;
 use PhpOffice\PhpWord\TemplateProcessor;
 
 class ProsesPengajuanController extends Controller
 {
-    public function index(Request $request)
+     public function index(Request $request)
     {
-        $query = PengajuanSurat::with(['user:id,name', 'jenisSurat:id,nama_surat,template_surat']);
+        // =================================================================
+        // PERUBAHAN: Query hanya untuk status 'pending' dan 'diproses'
+        $query = PengajuanSurat::select([
+                'id', 'user_id', 'jenis_surat_id', 'status', 'lampiran', 'nomor_surat', 
+                'keterangan_admin', 'file_final', 'file_hasil', 'created_at'
+            ])
+            ->whereIn('status', ['pending', 'diproses'])
+            ->with(['user:id,name,nik', 'jenisSurat:id,nama_surat']);
+        // =================================================================
 
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->whereHas('user', function ($userQuery) use ($searchTerm) {
+                    $userQuery->where('name', 'like', '%' . $searchTerm . '%');
+                })
+                ->orWhere('nomor_surat', 'like', '%' . $searchTerm . '%');
+            });
+        }
+
+        // Filter status di sisi server tidak lagi terlalu relevan di sini, 
+        // tapi bisa dipertahankan jika Anda ingin filter antara 'pending' dan 'diproses'.
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('jenis_surat')) {
+            $query->whereHas('jenisSurat', function ($jenisQuery) use ($request) {
+                $jenisQuery->where('nama_surat', $request->jenis_surat);
+            });
+        }
+        
+        $query->orderBy('created_at', 'desc');
+        
+        $perPage = $request->get('per_page', 10);
+        $pengajuanList = $query->paginate($perPage)->withQueryString();
+
+        return Inertia::render('Admin/Pengajuan/Index', [
+            'pengajuanList' => $pengajuanList,
+            'filters' => $request->only(['search', 'status', 'jenis_surat']),
+        ]);
+    }
+    public function riwayat(Request $request)
+    {
+        // =================================================================
+        // Query hanya untuk status 'selesai' dan 'ditolak'
+        $query = PengajuanSurat::select([
+                'id', 'user_id', 'jenis_surat_id', 'status', 'lampiran', 'nomor_surat', 
+                'keterangan_admin', 'file_final', 'file_hasil', 'created_at'
+            ])
+            ->whereIn('status', ['selesai', 'ditolak'])
+            ->with(['user:id,name,nik', 'jenisSurat:id,nama_surat']);
+
+        // =================================================================
+        
         if ($request->filled('search')) {
             $searchTerm = $request->search;
             $query->where(function ($q) use ($searchTerm) {
@@ -41,22 +91,19 @@ class ProsesPengajuanController extends Controller
                 $jenisQuery->where('nama_surat', $request->jenis_surat);
             });
         }
-
-        $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy('created_at', $sortOrder);
+        
+        $query->orderBy('created_at', 'desc');
         
         $perPage = $request->get('per_page', 10);
         $pengajuanList = $query->paginate($perPage)->withQueryString();
 
-        return Inertia::render('Admin/Pengajuan/Index', [
+        // Mengarahkan ke komponen Vue 'Riwayat.vue'
+        return Inertia::render('Admin/Pengajuan/Riwayat', [
             'pengajuanList' => $pengajuanList,
-            'filters' => $request->only(['search', 'status', 'jenis_surat', 'sort_order']),
+            'filters' => $request->only(['search', 'status', 'jenis_surat']),
         ]);
     }
 
-    /**
-     * Update status pengajuan surat (tanpa file upload)
-     */
     public function update(Request $request, PengajuanSurat $pengajuanSurat)
     {
         $request->validate([
@@ -65,7 +112,6 @@ class ProsesPengajuanController extends Controller
             'nomor_surat' => 'nullable|string|max:255|unique:pengajuan_surats,nomor_surat,' . $pengajuanSurat->id,
         ]);
         
-        // Pastikan tidak ada file dalam request ini
         if ($request->hasFile('file_hasil') || $request->hasFile('file_final')) {
             return redirect()->back()->with('error', 'Gunakan fitur upload untuk mengubah file.');
         }
@@ -74,46 +120,6 @@ class ProsesPengajuanController extends Controller
         
         return redirect()->back()->with('success', 'Status pengajuan berhasil diperbarui.');
     }
-
-    /**
-     * Upload file final dan otomatis set status ke "selesai"
-     */
-    // public function uploadDanSelesaikan(Request $request, PengajuanSurat $pengajuan)
-    // {
-    //     $request->validate([
-    //         'file_final' => 'required|file|mimes:doc,docx,pdf|max:2048',
-    //         'nomor_surat' => 'nullable|string|max:255|unique:pengajuan_surats,nomor_surat,' . $pengajuan->id,
-    //         'keterangan_admin' => 'nullable|string|max:1000',
-    //     ]);
-
-    //     try {
-    //         // Hapus file lama jika ada
-    //         if ($pengajuan->file_hasil && Storage::disk('public')->exists($pengajuan->file_hasil)) {
-    //             Storage::disk('public')->delete($pengajuan->file_hasil);
-    //         }
-
-    //         // Upload file baru
-    //         $file = $request->file('file_final');
-    //         $namaPemohon = Str::slug($pengajuan->user->name);
-    //         $namaSurat = Str::slug($pengajuan->jenisSurat->nama_surat);
-    //         $namaFile = "surat-selesai-{$namaPemohon}-{$namaSurat}-" . time() . '.' . $file->getClientOriginalExtension();
-    //         $path = $file->storeAs('surat-hasil', $namaFile, 'public');
-
-    //         // Update pengajuan
-    //         $pengajuan->update([
-    //             'status' => 'selesai', // Otomatis set ke selesai
-    //             'file_hasil' => $path,
-    //             'nomor_surat' => $request->nomor_surat,
-    //             'keterangan_admin' => $request->keterangan_admin ?? $pengajuan->keterangan_admin,
-    //         ]);
-
-    //         return redirect()->back()->with('success', 'Surat berhasil diupload dan status diubah menjadi Selesai.');
-
-    //     } catch (\Exception $e) {
-    //         Log::error('Error saat upload file final: ' . $e->getMessage());
-    //         return redirect()->back()->with('error', 'Terjadi kesalahan saat mengupload file: ' . $e->getMessage());
-    //     }
-    // }
 
     public function downloadTemplate(PengajuanSurat $pengajuan)
     {
@@ -156,7 +162,6 @@ class ProsesPengajuanController extends Controller
             $templateProcessor->setValue('alamat_pemohon', $pengajuan->user->address);
             $templateProcessor->setValue('keperluan', $pengajuan->keperluan ?? '-');
 
-            // Set logo jika ada
             if ($profilDesa->logo && File::exists(storage_path('app/public/' . $profilDesa->logo))) {
                 $templateProcessor->setImageValue('logo_desa', [
                     'path' => storage_path('app/public/' . $profilDesa->logo), 
@@ -168,7 +173,6 @@ class ProsesPengajuanController extends Controller
                 $templateProcessor->setValue('logo_desa', '[LOGO]');
             }
 
-            // Buat direktori temp jika belum ada
             $tempDir = storage_path('app/temp');
             if (!File::exists($tempDir)) {
                 File::makeDirectory($tempDir, 0755, true);
@@ -205,65 +209,90 @@ class ProsesPengajuanController extends Controller
         return response()->download($path, $namaFileDownload);
     }
 
-   public function uploadFile(Request $request, PengajuanSurat $pengajuan)
-{
-    $request->validate([
-        'file' => 'required|mimes:pdf,doc,docx|max:2048',
-    ]);
+    public function uploadFile(Request $request, PengajuanSurat $pengajuan)
+    {
+        $request->validate([
+            'file' => 'required|mimes:pdf,doc,docx|max:2048',
+        ]);
 
-    // hapus file lama jika ada
-    if ($pengajuan->file_final && Storage::exists($pengajuan->file_final)) {
-        Storage::delete($pengajuan->file_final);
-    }
+        // hapus file lama jika ada
+        if ($pengajuan->file_final && Storage::disk('public')->exists($pengajuan->file_final)) {
+            // PERBAIKAN: Gunakan disk public saat menghapus file lama
+            Storage::disk('public')->delete($pengajuan->file_final);
+        }
+        
+        // =================================================================
+        // UBAH BARIS INI: Tambahkan argumen 'public'
+        // Ini akan menyimpan file di storage/app/public/surat_final
+        $path = $request->file('file')->store('surat_final', 'public');
+        // =================================================================
 
-    $path = $request->file('file')->store('surat_final');
-
-    $pengajuan->update([
-        'file_final' => $path,
-    ]);
-
-    // ⬅ kalau request ingin JSON (Inertia/AJAX)
-    if ($request->wantsJson()) {
-        return response()->json([
-            'success' => true,
+        $pengajuan->update([
             'file_final' => $path,
         ]);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'file_final' => $path,
+            ]);
+        }
+
+        return back()->with('success', 'File berhasil diupload.');
     }
 
-    return back()->with('success', 'File berhasil diupload.');
-}
+    public function hapusFile(PengajuanSurat $pengajuan)
+    {
+        // PERBAIKAN: Gunakan disk public saat memeriksa dan menghapus file
+        if ($pengajuan->file_final && Storage::disk('public')->exists($pengajuan->file_final)) {
+            Storage::disk('public')->delete($pengajuan->file_final);
+        }
 
+        $pengajuan->update(['file_final' => null]);
 
-public function hapusFile(PengajuanSurat $pengajuan)
+        return back()->with('success', 'File berhasil dihapus.');
+    }
+
+    public function konfirmasiFinal(Request $request, PengajuanSurat $pengajuan)
+    {
+        if (!$pengajuan->file_final) {
+            return back()->with('error', 'Belum ada file untuk dikonfirmasi.');
+        }
+
+        // hapus file_hasil lama kalau ada
+        if ($pengajuan->file_hasil && Storage::disk('public')->exists($pengajuan->file_hasil)) {
+            Storage::disk('public')->delete($pengajuan->file_hasil);
+        }
+
+        $pengajuan->update([
+            'file_hasil' => $pengajuan->file_final,
+            'status' => 'selesai',
+            'file_final' => null, // Opsional: kosongkan file sementara setelah dikonfirmasi
+        ]);
+
+        return back()->with('success', 'Surat berhasil dikonfirmasi sebagai final.');
+    }
+    public function destroy(PengajuanSurat $pengajuan)
 {
-    if ($pengajuan->file_final && Storage::exists($pengajuan->file_final)) {
-        Storage::delete($pengajuan->file_final);
+    // Pastikan hanya pengajuan yang sudah di arsip yang bisa dihapus
+    if (!in_array($pengajuan->status, ['selesai', 'ditolak'])) {
+        return redirect()->back()->with('error', 'Hanya riwayat yang sudah selesai atau ditolak yang bisa dihapus.');
     }
 
-    $pengajuan->update(['file_final' => null]);
+    try {
+        // Hapus file hasil jika ada di storage
+        if ($pengajuan->file_hasil && Storage::disk('public')->exists($pengajuan->file_hasil)) {
+            Storage::disk('public')->delete($pengajuan->file_hasil);
+        }
 
-    return back()->with('success', 'File berhasil dihapus.');
+        // Hapus record dari database
+        $pengajuan->delete();
+
+        return redirect()->back()->with('success', 'Riwayat pengajuan berhasil dihapus.');
+
+    } catch (\Exception $e) {
+        Log::error('Gagal menghapus riwayat pengajuan: ' . $e->getMessage());
+        return redirect()->back()->with('error', 'Terjadi kesalahan saat menghapus riwayat.');
+    }
 }
-
-public function konfirmasiFinal(Request $request, PengajuanSurat $pengajuan)
-{
-    if (!$pengajuan->file_final) {
-        return back()->with('error', 'Belum ada file untuk dikonfirmasi.');
-    }
-
-    // hapus file_hasil lama kalau ada
-    if ($pengajuan->file_hasil && Storage::disk('public')->exists($pengajuan->file_hasil)) {
-        Storage::disk('public')->delete($pengajuan->file_hasil);
-    }
-
-    $pengajuan->update([
-        'file_hasil' => $pengajuan->file_final,
-        'status' => 'selesai',
-    ]);
-
-    return back()->with('success', 'Surat berhasil dikonfirmasi sebagai final.');
-}
-
-
-    
 }

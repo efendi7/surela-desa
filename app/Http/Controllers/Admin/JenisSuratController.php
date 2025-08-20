@@ -18,28 +18,29 @@ class JenisSuratController extends Controller
      * Menampilkan halaman utama manajemen jenis surat.
      * Juga mengambil daftar file template yang tersedia.
      */
-    public function index()
+     public function index()
     {
         $templateOptions = [];
         $templatePath = resource_path('views/templates');
 
-        // Cek apakah direktori template ada
         if (File::isDirectory($templatePath)) {
-            // Ambil semua file dari direktori
             $files = File::files($templatePath);
-
-            // Proses setiap file untuk mendapatkan nama yang bersih
             $templateOptions = array_map(function ($file) {
-                // Ambil nama file (e.g., "surat-keterangan-domisili.blade.php")
-                $fileName = $file->getFilename();
-                // Hapus ekstensi .blade.php dan ganti dengan .docx untuk ditampilkan di frontend
-                return str_replace('.blade.php', '.docx', $fileName);
+                return str_replace('.blade.php', '.docx', $file->getFilename());
             }, $files);
         }
 
+        // Ambil semua jenis surat dan lampirkan jumlah pengajuan aktif
+        $jenisSuratList = JenisSurat::all()->map(function ($jenisSurat) {
+            $jenisSurat->active_pengajuan_count = $jenisSurat->pengajuan()
+                ->whereIn('status', ['pending', 'diproses'])
+                ->count();
+            return $jenisSurat;
+        });
+
         return Inertia::render('Admin/JenisSurat/Index', [
-            'jenisSurat' => JenisSurat::all(),
-            'templateOptions' => $templateOptions, // Kirim daftar template ke view
+            'jenisSurat' => $jenisSuratList,
+            'templateOptions' => $templateOptions,
         ]);
     }
 
@@ -62,7 +63,7 @@ class JenisSuratController extends Controller
     /**
      * Memperbarui data jenis surat yang ada.
      */
-    public function update(Request $request, JenisSurat $jenisSurat)
+   public function update(Request $request, JenisSurat $jenisSurat)
     {
         $validated = $request->validate([
             'nama_surat' => 'required|string|max:255|unique:jenis_surats,nama_surat,' . $jenisSurat->id,
@@ -78,12 +79,19 @@ class JenisSuratController extends Controller
     /**
      * Menghapus jenis surat dari database.
      */
-    public function destroy(JenisSurat $jenisSurat)
+     public function destroy(JenisSurat $jenisSurat)
     {
+        $pengajuanAktifCount = $jenisSurat->pengajuan()
+            ->whereIn('status', ['pending', 'diproses'])
+            ->count();
+
+        if ($pengajuanAktifCount > 0) {
+            return redirect()->route('admin.jenis-surat.index')->with('error', "Gagal menghapus! Masih ada {$pengajuanAktifCount} pengajuan aktif yang menggunakan jenis surat ini.");
+        }
+
         $jenisSurat->delete();
         return redirect()->route('admin.jenis-surat.index')->with('success', 'Jenis surat berhasil dihapus.');
     }
-
     /**
      * Men-generate dan men-download surat DOCX berdasarkan data pengajuan.
      *

@@ -1,38 +1,117 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import Modal from '@/Components/Modal.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
-import { Head, usePage } from '@inertiajs/vue3';
-import { ref } from 'vue';
+    import { ref, computed } from 'vue';
+    import { Head } from '@inertiajs/vue3';
+    import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+    import PengajuanFilter from './Partials/PengajuanFilter.vue';
+    import PengajuanTable from './Partials/PengajuanTable.vue';
+    import PengajuanDetailModal from './Partials/PengajuanDetailModal.vue';
+    import FlashMessage from '@/Components/FlashMessage.vue';
 
-// PERUBAHAN 1: Menerima prop 'riwayatPengajuan' dari controller
-const props = defineProps({
-    riwayatPengajuan: Array,
-});
+    const props = defineProps({
+        pengajuanList: Object,
+    });
 
-const showDetailModal = ref(false);
-const selectedPengajuan = ref(null);
+    // STATE MANAGEMENT
+    // State untuk data dan modal detail tetap ada
+    const pengajuanData = ref([...props.pengajuanList.data]);
+    const showDetailModal = ref(false);
+    const selectedPengajuan = ref(null);
 
-// PERUBAHAN 2: Fungsi openDetailModal disederhanakan, tidak perlu mengisi form
-const openDetailModal = (pengajuan) => {
-    selectedPengajuan.value = pengajuan;
-    showDetailModal.value = true;
-};
+    // FILTER STATE
+    const filters = ref({
+        search: '',
+        status: '',
+        jenisSurat: '',
+        sort: 'desc',
+    });
 
-const closeModal = () => {
-    showDetailModal.value = false;
-    selectedPengajuan.value = null;
-};
+    // COMPUTED PROPERTIES
+    // Computed untuk filtering dan options tetap diperlukan
+    const jenisSuratOptions = computed(() => {
+        const uniqueJenis = [
+            ...new Set(pengajuanData.value.map((p) => p.jenis_surat?.nama_surat).filter(Boolean)),
+        ];
+        return uniqueJenis.sort();
+    });
+    
+    const filteredPengajuan = computed(() => {
+        let result = [...pengajuanData.value];
 
-// Fungsi getStatusClass tetap sama, tidak perlu diubah
-const getStatusClass = (status) => ({
-    'bg-yellow-100 text-yellow-800': status === 'pending',
-    'bg-blue-100 text-blue-800': status === 'diproses',
-    'bg-green-100 text-green-800': status === 'selesai',
-    'bg-red-100 text-red-800': status === 'ditolak',
-});
+        if (filters.value.search) {
+            const query = filters.value.search.toLowerCase();
+            result = result.filter(
+                (p) =>
+                    p.user?.name?.toLowerCase().includes(query) ||
+                    p.nomor_surat?.toLowerCase().includes(query) ||
+                    p.jenis_surat?.nama_surat?.toLowerCase().includes(query)
+            );
+        }
+        if (filters.value.status) {
+            result = result.filter((p) => p.status === filters.value.status);
+        }
+        if (filters.value.jenisSurat) {
+            result = result.filter((p) => p.jenis_surat?.nama_surat === filters.value.jenisSurat);
+        }
 
-// PERUBAHAN 3: Form dan fungsi updateStatus dihapus karena tidak diperlukan lagi
+        result.sort((a, b) => {
+            switch (filters.value.sort) {
+                case 'asc':
+                    return new Date(a.created_at) - new Date(b.created_at);
+                case 'name_asc':
+                    return (a.user?.name || '').localeCompare(b.user?.name || '');
+                case 'name_desc':
+                    return (b.user?.name || '').localeCompare(a.user?.name || '');
+                default:
+                    return new Date(b.created_at) - new Date(a.created_at);
+            }
+        });
+
+        return result;
+    });
+
+    // EVENT HANDLERS
+    const handleFilterChange = (newFilters) => {
+        filters.value = newFilters;
+    };
+
+    const handleClearFilters = () => {
+        filters.value = { search: '', status: '', jenisSurat: '', sort: 'desc' };
+    };
+
+    const openDetailModal = (pengajuan) => {
+        selectedPengajuan.value = pengajuan;
+        showDetailModal.value = true;
+    };
+
+    const closeModal = () => {
+        showDetailModal.value = false;
+        selectedPengajuan.value = null;
+    };
+
+    // ACTIONS (LOGIC & API CALLS)
+    // Fungsi untuk update data lokal jika ada perubahan dari modal detail (misal: edit keterangan)
+    const updateLocalData = (updatedPengajuan) => {
+        const index = pengajuanData.value.findIndex((p) => p.id === updatedPengajuan.id);
+        if (index !== -1) {
+            pengajuanData.value[index] = { ...pengajuanData.value[index], ...updatedPengajuan };
+        }
+    };
+
+    // Fungsi submit dari modal detail tetap ada
+    const submitPerubahan = ({ id, formData }) => {
+        formData.patch(route('admin.proses.update', { pengajuanSurat: id }), {
+            preserveScroll: true,
+            onSuccess: () => {
+                updateLocalData({ id, ...formData });
+                closeModal();
+            },
+        });
+    };
+
+    // --- FUNGSI-FUNGSI AKSI DIHILANGKAN ---
+    // triggerFileUpload, handleFileSelected, konfirmasiSelesai, hapusFile,
+    // dan semua yang berhubungan dengan ConfirmationModal dihilangkan karena tidak relevan.
+
 </script>
 
 <template>
@@ -40,80 +119,40 @@ const getStatusClass = (status) => ({
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Riwayat Pengajuan Surat</h2>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                Riwayat Pengajuan Surat
+            </h2>
         </template>
-
+        
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="bg-white shadow-sm sm:rounded-lg">
                     <div class="p-6 text-gray-900">
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full bg-white">
-                                <thead class="bg-gray-200">
-                                    <tr>
-                                        <th class="py-2 px-4 text-left">Pemohon</th>
-                                        <th class="py-2 px-4 text-left">Jenis Surat</th>
-                                        <th class="py-2 px-4 text-left">Tanggal</th>
-                                        <th class="py-2 px-4 text-left">Status Akhir</th>
-                                        <th class="py-2 px-4 text-left">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-if="riwayatPengajuan.length === 0">
-                                        <td colspan="5" class="text-center py-4 text-gray-500">Belum ada riwayat pengajuan.</td>
-                                    </tr>
-                                    <tr v-for="pengajuan in riwayatPengajuan" :key="pengajuan.id" class="border-b">
-                                        <td class="py-2 px-4">{{ pengajuan.user.name }}</td>
-                                        <td class="py-2 px-4">{{ pengajuan.jenis_surat.nama_surat }}</td>
-                                        <td class="py-2 px-4">{{ new Date(pengajuan.created_at).toLocaleDateString('id-ID') }}</td>
-                                        <td class="py-2 px-4">
-                                            <span class="px-2 py-1 text-xs font-medium rounded-full capitalize" :class="getStatusClass(pengajuan.status)">{{ pengajuan.status }}</span>
-                                        </td>
-                                        <td class="py-2 px-4">
-                                            <button @click="openDetailModal(pengajuan)" class="text-indigo-600 hover:text-indigo-900 mr-4">Detail</button>
-                                            <a v-if="pengajuan.status === 'selesai'" :href="route('admin.proses.cetak', pengajuan.id)" target="_blank" class="text-green-600 hover:text-green-900">
-                                                Cetak
-                                            </a>
-                                            <span v-else class="text-gray-400 cursor-not-allowed">Cetak</span>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <FlashMessage />
+
+                        <PengajuanFilter
+                            :jenis-surat-options="jenisSuratOptions"
+                            @filter-changed="handleFilterChange"
+                            @clear-filters="handleClearFilters"
+                        />
+
+                        <PengajuanTable
+                            :pengajuan="filteredPengajuan"
+                            :total-data="pengajuanData.length"
+                            :is-riwayat="true"
+                            @open-detail="openDetailModal"
+                        />
                         </div>
-                    </div>
                 </div>
             </div>
         </div>
 
-        <Modal :show="showDetailModal" @close="closeModal">
-            <div class="p-6" v-if="selectedPengajuan">
-                <h2 class="text-lg font-medium text-gray-900">Detail Riwayat: {{ selectedPengajuan.jenis_surat.nama_surat }}</h2>
-                
-                <div class="mt-4 border-t pt-4 space-y-4 text-sm">
-                    <p><strong>Pemohon:</strong> {{ selectedPengajuan.user.name }}</p>
-                    <p><strong>Status Akhir:</strong> 
-                        <span class="px-2 py-1 text-xs font-medium rounded-full capitalize" :class="getStatusClass(selectedPengajuan.status)">
-                            {{ selectedPengajuan.status }}
-                        </span>
-                    </p>
-                     <div v-if="selectedPengajuan.keterangan_admin">
-                        <strong>Keterangan Admin:</strong>
-                        <p class="mt-1 p-2 bg-gray-100 rounded-md whitespace-pre-wrap">{{ selectedPengajuan.keterangan_admin }}</p>
-                    </div>
-                    <div>
-                        <strong>Lampiran:</strong>
-                        <ul class="list-disc list-inside ml-4">
-                            <li v-for="(path, name) in selectedPengajuan.lampiran" :key="name">
-                                <a :href="'/storage/' + path" target="_blank" class="text-indigo-600 hover:underline">{{ name.replace(/_/g, ' ') }}</a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="mt-6 flex justify-end">
-                    <SecondaryButton @click="closeModal">Tutup</SecondaryButton>
-                </div>
-            </div>
-        </Modal>
-    </AuthenticatedLayout>
+        <PengajuanDetailModal
+            :show="showDetailModal"
+            :pengajuan="selectedPengajuan"
+            @close="closeModal"
+            @submit="submitPerubahan"
+        />
+        
+        </AuthenticatedLayout>
 </template>

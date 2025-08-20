@@ -79,6 +79,9 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\IsAdmin::class])
 Route::delete('/pengajuan/{pengajuan}/hapus-file', [ProsesPengajuanController::class, 'hapusFile'])->name('proses.hapusFile');
 Route::post('/pengajuan/{pengajuan}/konfirmasi-final', [ProsesPengajuanController::class, 'konfirmasiFinal'])->name('proses.konfirmasiFinal');
 
+  Route::get('/proses-pengajuan/riwayat', [ProsesPengajuanController::class, 'riwayat'])->name('proses.riwayat');
+   Route::delete('/proses-pengajuan/{pengajuan}', [\App\Http\Controllers\Admin\ProsesPengajuanController::class, 'destroy'])->name('proses.destroy');
+
 
        
 

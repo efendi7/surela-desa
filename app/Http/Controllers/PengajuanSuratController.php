@@ -6,28 +6,25 @@ use App\Models\JenisSurat;
 use App\Models\PengajuanSurat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Illuminate\Support\Str; // BARU: Tambahkan baris ini untuk mengimpor Str helper
 
 class PengajuanSuratController extends Controller
 {
     /**
      * Menampilkan halaman utama pengajuan surat untuk warga.
-     * Warga bisa melihat riwayat pengajuan mereka dan membuat pengajuan baru.
      */
     public function index()
     {
         $user = Auth::user();
 
         return Inertia::render('Pengajuan/Index', [
-            // Mengambil daftar jenis surat yang bisa diajukan
             'jenisSuratTersedia' => JenisSurat::all(['id', 'nama_surat', 'syarat']),
-            
-            // Mengambil riwayat pengajuan milik user yang sedang login
-           'riwayatPengajuan' => PengajuanSurat::where('user_id', $user->id)
-                        ->with('jenisSurat:id,nama_surat')
-                        ->latest()
-                        // Ambil kolom yang dibutuhkan, TERMASUK 'status' dan 'file_hasil'
-                        ->get(['id', 'jenis_surat_id', 'user_id', 'status', 'file_hasil', 'created_at', 'lampiran']),
+            'riwayatPengajuan' => PengajuanSurat::where('user_id', $user->id)
+                                    ->with('jenisSurat:id,nama_surat')
+                                    ->latest()
+                                    ->get(['id', 'jenis_surat_id', 'user_id', 'status', 'file_hasil', 'created_at', 'lampiran']),
         ]);
     }
 
@@ -37,14 +34,21 @@ class PengajuanSuratController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
+        $jenisSurat = JenisSurat::findOrFail($request->jenis_surat_id);
 
-        $request->validate([
+        $validationRules = [
             'jenis_surat_id' => 'required|exists:jenis_surats,id',
-            // Validasi untuk file lampiran bisa ditambahkan di sini jika diperlukan
-            // 'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048'
-        ]);
+        ];
 
-        // Snapshot data pemohon saat itu juga
+        if ($jenisSurat->syarat) {
+            foreach ($jenisSurat->syarat as $syarat) {
+                $slug = Str::slug($syarat, '_'); 
+                $validationRules["lampiran.{$slug}"] = 'required|file|mimes:pdf|max:2048';
+            }
+        }
+
+        $request->validate($validationRules);
+
         $dataPemohon = [
             'nama' => $user->name,
             'nik' => $user->nik,
@@ -53,13 +57,20 @@ class PengajuanSuratController extends Controller
             'address' => $user->address,
         ];
 
+        $lampiranPaths = [];
+        if ($request->hasFile('lampiran')) {
+            foreach ($request->file('lampiran') as $key => $file) {
+                $path = $file->store('lampiran_warga', 'public');
+                $lampiranPaths[$key] = $path; 
+            }
+        }
+
         PengajuanSurat::create([
             'user_id' => $user->id,
             'jenis_surat_id' => $request->jenis_surat_id,
             'data_pemohon' => $dataPemohon,
             'status' => 'pending',
-            // Logika untuk upload file akan ditambahkan nanti
-            'lampiran' => null, 
+            'lampiran' => $lampiranPaths, 
         ]);
 
         return redirect()->route('pengajuan.index')->with('success', 'Pengajuan surat berhasil dikirim.');
@@ -70,14 +81,19 @@ class PengajuanSuratController extends Controller
      */
     public function destroy(PengajuanSurat $pengajuanSurat)
     {
-        // Pastikan user hanya bisa menghapus pengajuannya sendiri
         if ($pengajuanSurat->user_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
 
-        // Hanya pengajuan 'pending' yang bisa dibatalkan
         if ($pengajuanSurat->status !== 'pending') {
             return redirect()->route('pengajuan.index')->with('error', 'Pengajuan ini sudah diproses dan tidak bisa dibatalkan.');
+        }
+        
+        // Hapus file lampiran dari storage jika ada
+        if ($pengajuanSurat->lampiran && is_array($pengajuanSurat->lampiran)) {
+            foreach ($pengajuanSurat->lampiran as $path) {
+                Storage::disk('public')->delete($path);
+            }
         }
 
         $pengajuanSurat->delete();
