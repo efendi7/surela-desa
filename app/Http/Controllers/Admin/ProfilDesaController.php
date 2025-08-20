@@ -11,71 +11,77 @@ use Illuminate\Validation\ValidationException;
 
 class ProfilDesaController extends Controller
 {
-    /**
-     * Menampilkan halaman profil desa.
-     */
     public function index()
     {
-        // Mengambil data profil, atau membuat data default jika belum ada.
-        // Nama kolom disesuaikan dengan migrasi dan model yang baru.
+        // Inisialisasi struktur organisasi sebagai array of objects
+        $defaultStruktur = [
+            ['jabatan' => 'Kepala Desa', 'nama' => ''],
+            ['jabatan' => 'Badan Permusyawaratan Desa', 'nama' => ''],
+            ['jabatan' => 'Sekretaris Desa', 'nama' => ''],
+            ['jabatan' => 'Kaur Pemerintahan', 'nama' => ''],
+            ['jabatan' => 'Kaur Pembangunan', 'nama' => ''],
+            ['jabatan' => 'Kaur Pemberdayaan Masyarakat', 'nama' => ''],
+            ['jabatan' => 'Kaur Kesejahteraan Rakyat', 'nama' => ''],
+            ['jabatan' => 'Kaur Umum', 'nama' => ''],
+            ['jabatan' => 'Kaur Keuangan', 'nama' => ''],
+        ];
+
         $profil = ProfilDesa::firstOrCreate(
             ['id' => 1],
             [
                 'nama_desa' => 'Nama Desa Anda',
-                'nama_kecamatan' => 'Nama Kecamatan',
-                'nama_kabupaten' => 'Nama Kabupaten',
-                'nama_provinsi' => 'Nama Provinsi',
-                 'kode_pos' => '12345',
                 'alamat' => 'Alamat lengkap kantor desa.',
                 'email' => 'email@desa.id',
                 'telepon' => '081234567890',
                 'nama_kepala_desa' => 'Nama Kepala Desa',
+                // Simpan sebagai JSON
+                'struktur_organisasi' => $defaultStruktur,
             ]
         );
+
+        // Jika profil sudah ada tapi struktur_organisasi kosong/null, isi dengan default
+        if (empty($profil->struktur_organisasi)) {
+            $profil->struktur_organisasi = $defaultStruktur;
+            $profil->save();
+        }
+
 
         return Inertia::render('Admin/ProfilDesa/Index', [
             'profilDesa' => $profil,
         ]);
     }
 
-    /**
-     * Memperbarui data profil desa.
-     */
     public function update(Request $request)
     {
         $profil = ProfilDesa::firstOrFail();
 
-        // Aturan validasi disesuaikan dengan nama kolom yang baru.
-        // Aturan untuk kolom yang tidak ada di model (seperti visi, misi) dihapus untuk menghindari error.
+        // Validasi diubah untuk menerima array
         $validated = $request->validate([
             'nama_desa' => 'required|string|max:255',
             'nama_kecamatan' => 'required|string|max:255',
             'nama_kabupaten' => 'required|string|max:255',
             'nama_provinsi' => 'required|string|max:255',
-            'kode_pos' => 'nullable|string|max:10', // 👈 tambahkan ini
+            'kode_pos' => 'nullable|string|max:10',
             'alamat' => 'required|string|max:1000',
             'email' => 'required|email|max:255',
             'telepon' => 'required|string|max:20',
             'nama_kepala_desa' => 'required|string|max:255',
             'logo' => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
+            'sejarah' => 'nullable|string',
+            'visi' => 'nullable|string',
+            'misi' => 'nullable|string',
+            // Validasi untuk struktur organisasi
+            'struktur_organisasi' => 'present|array',
+            'struktur_organisasi.*.jabatan' => 'required|string',
+            'struktur_organisasi.*.nama' => 'nullable|string|max:255',
         ]);
-
+        
         // Handle logo upload
         if ($request->hasFile('logo')) {
-            try {
-                // Delete old logo if exists
-                if ($profil->logo && Storage::disk('public')->exists($profil->logo)) {
-                    Storage::disk('public')->delete($profil->logo);
-                }
-
-                // Store new logo
-                $logoPath = $request->file('logo')->store('logo-desa', 'public');
-                $validated['logo'] = $logoPath;
-            } catch (\Exception $e) {
-                throw ValidationException::withMessages([
-                    'logo' => ['Gagal mengupload logo. Silakan coba lagi.']
-                ]);
+            if ($profil->logo && Storage::disk('public')->exists($profil->logo)) {
+                Storage::disk('public')->delete($profil->logo);
             }
+            $validated['logo'] = $request->file('logo')->store('logo-desa', 'public');
         }
 
         $profil->update($validated);
@@ -83,26 +89,5 @@ class ProfilDesaController extends Controller
         return redirect()
             ->route('admin.profil-desa.index')
             ->with('success', 'Profil desa berhasil diperbarui.');
-    }
-
-    /**
-     * Hapus logo desa.
-     */
-    public function deleteLogo()
-    {
-        $profil = ProfilDesa::firstOrFail();
-
-        if ($profil->logo && Storage::disk('public')->exists($profil->logo)) {
-            Storage::disk('public')->delete($profil->logo);
-            $profil->update(['logo' => null]);
-
-            return redirect()
-                ->route('admin.profil-desa.index')
-                ->with('success', 'Logo desa berhasil dihapus.');
-        }
-
-        return redirect()
-            ->route('admin.profil-desa.index')
-            ->with('error', 'Logo tidak ditemukan.');
     }
 }

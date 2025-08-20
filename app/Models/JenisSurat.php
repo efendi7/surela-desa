@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str; // 1. Import class Str untuk membuat slug
 
 class JenisSurat extends Model
 {
@@ -18,10 +17,8 @@ class JenisSurat extends Model
     protected $fillable = [
         'nama_surat',
         'deskripsi',
-        'kode_surat',
-        'slug', // 2. Tambahkan 'slug' ke fillable
+        'template_surat', // Menggantikan slug dan kode_surat
         'syarat',
-        
     ];
 
     /**
@@ -33,41 +30,6 @@ class JenisSurat extends Model
         'syarat' => 'array',
     ];
 
-    /**
-     * 3. Tambahkan method booted() ini.
-     * Method ini akan dieksekusi secara otomatis oleh Laravel.
-     */
-    protected static function booted(): void
-    {
-        // Event 'creating' berjalan SEBELUM data baru disimpan
-        static::creating(function (JenisSurat $jenisSurat) {
-            // Membuat slug dari nama_surat
-            $jenisSurat->slug = Str::slug($jenisSurat->nama_surat);
-
-            // Membuat kode_surat dari singkatan nama
-            $words = explode(' ', $jenisSurat->nama_surat);
-            $kode = '';
-            foreach ($words as $word) {
-                $kode .= strtoupper(substr($word, 0, 1));
-            }
-            $jenisSurat->kode_surat = $kode;
-        });
-
-        // Event 'updating' berjalan SEBELUM data di-update
-        static::updating(function (JenisSurat $jenisSurat) {
-            // Cek apakah nama_surat diubah
-            if ($jenisSurat->isDirty('nama_surat')) {
-                // Jika ya, buat ulang slug dan kode_surat
-                $jenisSurat->slug = Str::slug($jenisSurat->nama_surat);
-
-                $words = explode(' ', $jenisSurat->nama_surat);
-                $kode = '';
-                foreach ($words as $word) {
-                    $kode .= strtoupper(substr($word, 0, 1));
-                }
-                $jenisSurat->kode_surat = $kode;
-            }
-        });
-    }
-    
+    // Method booted() dan logika pembuatan slug/kode_surat otomatis telah dihapus
+    // karena sudah tidak diperlukan lagi.
 }

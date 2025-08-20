@@ -19,7 +19,9 @@ class PengajuanSurat extends Model
         'keterangan_admin',
         'increment_nomor',
         'nomor_surat',
-        'file_word',  
+        'file_word', 
+        'file_final',
+        'file_hasil'
     ];
 
     protected $casts = [

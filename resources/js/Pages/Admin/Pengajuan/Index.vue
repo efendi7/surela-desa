@@ -4,25 +4,21 @@
     import PrimaryButton from '@/Components/PrimaryButton.vue';
     import SecondaryButton from '@/Components/SecondaryButton.vue';
     import InputLabel from '@/Components/InputLabel.vue';
+    import { CheckCircleIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/solid';
     import { Head, useForm, usePage, router } from '@inertiajs/vue3';
-    import { ref, computed, watch } from 'vue';
+    import { ref, watch } from 'vue';
 
     const props = defineProps({
-        pengajuanList: Array,
+        pengajuanList: Object,
         filters: Object,
-        pagination: Object,
     });
 
+    const pengajuanData = ref([...props.pengajuanList.data]);
     const showDetailModal = ref(false);
-    const showCetakModal = ref(false);
     const selectedPengajuan = ref(null);
-    const selectedPengajuanCetak = ref(null);
 
-    // Search and filter states
-    const searchQuery = ref(props.filters?.search || '');
-    const sortOrder = ref(props.filters?.sort_order || 'desc');
-    const filterStatus = ref(props.filters?.status || '');
-    const filterJenisSurat = ref(props.filters?.jenis_surat || '');
+    // Input file hidden
+    const fileInputRef = ref(null);
 
     const form = useForm({
         status: '',
@@ -30,16 +26,11 @@
         nomor_surat: '',
     });
 
-    // Get unique jenis surat for filter dropdown
-    const uniqueJenisSurat = computed(() => {
-        const jenisSet = new Set();
-        props.pengajuanList.forEach((item) => {
-            jenisSet.add(item.jenis_surat.nama_surat);
-        });
-        return Array.from(jenisSet).sort();
-    });
+    const searchQuery = ref(props.filters?.search || '');
+    const sortOrder = ref(props.filters?.sort_order || 'desc');
+    const filterStatus = ref(props.filters?.status || '');
+    const filterJenisSurat = ref(props.filters?.jenis_surat || '');
 
-    // Apply filters
     const applyFilters = () => {
         router.get(
             route('admin.proses.index'),
@@ -49,33 +40,26 @@
                 status: filterStatus.value,
                 jenis_surat: filterJenisSurat.value,
             },
-            {
-                preserveState: true,
-                preserveScroll: true,
-            }
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
-    // Watch for changes and apply filters with debounce
     let searchTimeout;
-    watch([searchQuery], () => {
+    watch(searchQuery, () => {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(applyFilters, 500);
     });
-
     watch([sortOrder, filterStatus, filterJenisSurat], applyFilters);
 
     const openDetailModal = (pengajuan) => {
         selectedPengajuan.value = pengajuan;
-        form.status = pengajuan.status;
-        form.keterangan_admin = pengajuan.keterangan_admin || '';
-        form.nomor_surat = pengajuan.nomor_surat || '';
+        form.defaults({
+            status: pengajuan.status,
+            keterangan_admin: pengajuan.keterangan_admin || '',
+            nomor_surat: pengajuan.nomor_surat || '',
+        });
+        form.reset();
         showDetailModal.value = true;
-    };
-
-    const openCetakModal = (pengajuan) => {
-        selectedPengajuanCetak.value = pengajuan;
-        showCetakModal.value = true;
     };
 
     const closeModal = () => {
@@ -84,16 +68,79 @@
         form.reset();
     };
 
-    const closeCetakModal = () => {
-        showCetakModal.value = false;
-        selectedPengajuanCetak.value = null;
-    };
-
-    const updateStatus = () => {
+    const submitPerubahan = () => {
         if (!selectedPengajuan.value) return;
-        form.patch(route('admin.proses.update', selectedPengajuan.value.id), {
+
+        form.patch(route('admin.proses.update', { pengajuanSurat: selectedPengajuan.value.id }), {
             preserveScroll: true,
             onSuccess: () => closeModal(),
+        });
+    };
+
+    // 🔹 Trigger upload file
+    const triggerFileUpload = (pengajuan) => {
+        selectedPengajuan.value = pengajuan;
+        fileInputRef.value.click();
+    };
+    // 2. Fungsi yang menangani file setelah dipilih (logika baru)
+    // 🔹 Tangani setelah file dipilih
+    const handleFileSelected = (event) => {
+        const file = event.target.files[0];
+        if (!file || !selectedPengajuan.value) {
+            event.target.value = null;
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        router.post(
+            route('admin.proses.uploadFile', { pengajuan: selectedPengajuan.value.id }),
+            formData,
+            {
+                forceFormData: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    // ✅ update di reactive array
+                    const idx = pengajuanData.value.findIndex(
+                        (p) => p.id === selectedPengajuan.value.id
+                    );
+                    if (idx !== -1) {
+                        pengajuanData.value[idx] = {
+                            ...pengajuanData.value[idx],
+                            file_final: 'uploaded',
+                        };
+                    }
+                    selectedPengajuan.value = null;
+                },
+                onError: (errors) => {
+                    alert(Object.values(errors).join('\n'));
+                },
+            }
+        );
+
+        event.target.value = null; // reset input
+    };
+    // 3. Fungsi baru untuk konfirmasi (ikon centang)
+    const konfirmasiSelesai = (pengajuan) => {
+        if (
+            !confirm(
+                "Yakin ingin menyelesaikan pengajuan ini? Status akan diubah menjadi 'Selesai' dan file tidak bisa diubah lagi."
+            )
+        )
+            return;
+
+        router.post(route('admin.proses.konfirmasiFinal', { pengajuan: pengajuan.id }), {
+            preserveScroll: true,
+        });
+    };
+
+    // 4. Fungsi untuk hapus file (ikon tong sampah)
+    const hapusFile = (pengajuan) => {
+        if (!confirm('Yakin ingin menghapus file sementara ini?')) return;
+
+        router.delete(route('admin.proses.hapusFile', { pengajuan: pengajuan.id }), {
+            preserveScroll: true,
         });
     };
 
@@ -103,31 +150,10 @@
         'bg-green-100 text-green-800': status === 'selesai',
         'bg-red-100 text-red-800': status === 'ditolak',
     });
-
-    // Pagination helper
-    const goToPage = (url) => {
-        if (url) {
-            router.get(
-                url,
-                {
-                    search: searchQuery.value,
-                    sort_by: sortBy.value,
-                    sort_order: sortOrder.value,
-                    status: filterStatus.value,
-                    jenis_surat: filterJenisSurat.value,
-                },
-                {
-                    preserveState: true,
-                    preserveScroll: true,
-                }
-            );
-        }
-    };
 </script>
 
 <template>
     <Head title="Proses Pengajuan Surat" />
-
     <AuthenticatedLayout>
         <template #header>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -135,9 +161,17 @@
             </h2>
         </template>
 
+        <input
+            type="file"
+            ref="fileInputRef"
+            @change="handleFileSelected"
+            class="hidden"
+            accept=".doc,.docx,.pdf"
+        />
+
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="bg-white shadow-sm sm:rounded-lg">
                     <div class="p-6 text-gray-900">
                         <div
                             v-if="usePage().props.flash?.success"
@@ -152,112 +186,66 @@
                             {{ usePage().props.flash.error }}
                         </div>
 
-                        <!-- Search and Filter Section -->
                         <div class="mb-6 bg-gray-50 p-4 rounded-lg">
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                                <!-- Search Input -->
-                                <div class="lg:col-span-2">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                                        Cari Pemohon/Nomor Surat
-                                    </label>
-                                    <input
-                                        v-model="searchQuery"
-                                        type="text"
-                                        placeholder="Nama pemohon atau nomor surat..."
-                                        class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    />
-                                </div>
-
-                                <!-- Status Filter -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                                        Status
-                                    </label>
-                                    <select
-                                        v-model="filterStatus"
-                                        class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    >
-                                        <option value="">Semua Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="diproses">Diproses</option>
-                                        <option value="selesai">Selesai</option>
-                                        <option value="ditolak">Ditolak</option>
-                                    </select>
-                                </div>
-
-                                <!-- Jenis Surat Filter -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                                        Jenis Surat
-                                    </label>
-                                    <select
-                                        v-model="filterJenisSurat"
-                                        class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    >
-                                        <option value="">Semua Jenis</option>
-                                        <option
-                                            v-for="jenis in uniqueJenisSurat"
-                                            :key="jenis"
-                                            :value="jenis"
-                                        >
-                                            {{ jenis }}
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <!-- Sort Options -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                                        Urutkan Tanggal
-                                    </label>
-                                    <select
-                                        v-model="sortOrder"
-                                        class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    >
-                                        <option value="desc">Terbaru</option>
-                                        <option value="asc">Terlama</option>
-                                    </select>
-                                </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <input
+                                    v-model="searchQuery"
+                                    type="text"
+                                    placeholder="Cari pemohon/nomor surat..."
+                                    class="w-full border-gray-300 rounded-md shadow-sm"
+                                />
+                                <select
+                                    v-model="filterStatus"
+                                    class="w-full border-gray-300 rounded-md shadow-sm"
+                                >
+                                    <option value="">Semua Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="diproses">Diproses</option>
+                                    <option value="selesai">Selesai</option>
+                                    <option value="ditolak">Ditolak</option>
+                                </select>
+                                <select
+                                    v-model="filterJenisSurat"
+                                    class="w-full border-gray-300 rounded-md shadow-sm"
+                                >
+                                    <option value="">Semua Jenis Surat</option>
+                                </select>
+                                <select
+                                    v-model="sortOrder"
+                                    class="w-full border-gray-300 rounded-md shadow-sm"
+                                >
+                                    <option value="desc">Terbaru</option>
+                                    <option value="asc">Terlama</option>
+                                </select>
                             </div>
                         </div>
 
-                        <!-- Results Info -->
-                        <div v-if="pagination" class="mb-4 text-sm text-gray-600">
-                            Menampilkan {{ pagination.from || 0 }}-{{ pagination.to || 0 }} dari
-                            {{ pagination.total || 0 }} pengajuan
-                        </div>
-
-                        <!-- Tabel Pengajuan -->
                         <div class="overflow-x-auto">
-                            <table class="min-w-full bg-white">
-                                <thead class="bg-gray-200">
+                            <table class="min-w-full bg-white border rounded-lg">
+                                <thead class="bg-gray-100">
                                     <tr>
-                                        <th class="py-2 px-4 text-left">Pemohon</th>
-                                        <th class="py-2 px-4 text-left">Nomor Surat</th>
-                                        <th class="py-2 px-4 text-left">Jenis Surat</th>
-                                        <th class="py-2 px-4 text-left">Tanggal</th>
-                                        <th class="py-2 px-4 text-left">Status</th>
-                                        <th class="py-2 px-4 text-left">Aksi</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Pemohon</th>
+                                        <th class="py-3 px-4 text-left font-semibold">
+                                            Jenis Surat
+                                        </th>
+                                        <th class="py-3 px-4 text-left font-semibold">Tanggal</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Status</th>
+                                        <th class="py-3 px-4 text-center font-semibold">
+                                            Template
+                                        </th>
+                                        <th class="py-3 px-4 text-center font-semibold">
+                                            Upload & Konfirmasi
+                                        </th>
+                                        <th class="py-3 px-4 text-center font-semibold">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr
-                                        v-for="pengajuan in pengajuanList"
+                                        v-for="pengajuan in pengajuanData"
                                         :key="pengajuan.id"
                                         class="border-b hover:bg-gray-50"
                                     >
                                         <td class="py-2 px-4">{{ pengajuan.user.name }}</td>
-                                        <td class="py-2 px-4">
-                                            <span
-                                                v-if="pengajuan.nomor_surat"
-                                                class="text-sm font-mono bg-gray-100 px-2 py-1 rounded"
-                                            >
-                                                {{ pengajuan.nomor_surat }}
-                                            </span>
-                                            <span v-else class="text-gray-400 text-sm italic">
-                                                Belum ada nomor
-                                            </span>
-                                        </td>
                                         <td class="py-2 px-4">
                                             {{ pengajuan.jenis_surat.nama_surat }}
                                         </td>
@@ -272,317 +260,185 @@
                                             <span
                                                 class="px-2 py-1 text-xs font-medium rounded-full capitalize"
                                                 :class="getStatusClass(pengajuan.status)"
-                                                >{{ pengajuan.status }}</span
                                             >
+                                                {{ pengajuan.status }}
+                                            </span>
                                         </td>
-                                        <td class="py-2 px-4">
+
+                                        <td class="py-2 px-4 text-center">
+                                            <a
+                                                v-if="
+                                                    ['diproses', 'selesai', 'ditolak'].includes(
+                                                        pengajuan.status
+                                                    ) && pengajuan.jenis_surat?.template_surat
+                                                "
+                                                :href="
+                                                    route('admin.proses.downloadTemplate', {
+                                                        pengajuan: pengajuan.id,
+                                                    })
+                                                "
+                                                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow transition"
+                                            >
+                                                Unduh
+                                            </a>
+                                            <span
+                                                v-else-if="pengajuan.status === 'pending'"
+                                                class="italic text-gray-500 text-xs"
+                                            >
+                                                Ubah status ke 'diproses'
+                                            </span>
+                                            <span v-else class="text-gray-400 text-sm">—</span>
+                                        </td>
+
+                                        <td class="py-2 px-4 text-center">
                                             <div
-                                                class="flex flex-col sm:flex-row sm:items-center gap-2"
+                                                v-if="
+                                                    ['diproses', 'ditolak'].includes(
+                                                        pengajuan.status
+                                                    )
+                                                "
                                             >
                                                 <button
-                                                    @click="openDetailModal(pengajuan)"
-                                                    class="text-indigo-600 hover:text-indigo-900"
+                                                    v-if="!pengajuan.file_final"
+                                                    @click="triggerFileUpload(pengajuan)"
+                                                    class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md shadow transition"
                                                 >
-                                                    Proses
+                                                    Upload File
                                                 </button>
 
-                                                <!-- Tombol Cetak -->
-                                                <button
-                                                    v-if="pengajuan.status === 'selesai'"
-                                                    @click="openCetakModal(pengajuan)"
-                                                    class="text-green-600 hover:text-green-900"
-                                                >
-                                                    Cetak
-                                                </button>
-
-                                                <span
+                                                <div
                                                     v-else
-                                                    class="text-gray-400 cursor-not-allowed px-4 py-2 text-sm"
-                                                    >Cetak</span
+                                                    class="flex items-center justify-center space-x-3"
+                                                >
+                                                    <button
+                                                        @click="konfirmasiSelesai(pengajuan)"
+                                                        class="text-green-600 hover:text-green-800"
+                                                        title="Konfirmasi & Selesaikan"
+                                                    >
+                                                        <CheckCircleIcon class="w-6 h-6" />
+                                                    </button>
+                                                    <button
+                                                        @click="triggerFileUpload(pengajuan)"
+                                                        class="text-blue-600 hover:text-blue-800"
+                                                        title="Ganti file"
+                                                    >
+                                                        <PencilSquareIcon class="w-6 h-6" />
+                                                    </button>
+                                                    <button
+                                                        @click="hapusFile(pengajuan)"
+                                                        class="text-red-600 hover:text-red-800"
+                                                        title="Hapus file sementara"
+                                                    >
+                                                        <TrashIcon class="w-6 h-6" />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div
+                                                v-else-if="
+                                                    pengajuan.status === 'selesai' &&
+                                                    pengajuan.file_hasil
+                                                "
+                                            >
+                                                <a
+                                                    :href="
+                                                        route('warga.pengajuan.download', {
+                                                            pengajuan: pengajuan.id,
+                                                        })
+                                                    "
+                                                    class="text-green-600 font-semibold hover:underline"
+                                                >
+                                                    Undah Surat Hasil
+                                                </a>
+                                            </div>
+
+                                            <div v-else-if="pengajuan.status === 'pending'">
+                                                <span class="italic text-gray-500 text-xs"
+                                                    >Ubah status ke 'diproses'</span
                                                 >
                                             </div>
+
+                                            <div v-else>
+                                                <span class="italic text-gray-400 text-sm">—</span>
+                                            </div>
+                                        </td>
+
+                                        <td class="py-2 px-4 text-center">
+                                            <button
+                                                @click="openDetailModal(pengajuan)"
+                                                class="text-indigo-600 hover:text-indigo-900 font-medium"
+                                            >
+                                                Proses
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="pengajuanList.data.length === 0">
+                                        <td colspan="7" class="text-center py-8 text-gray-500">
+                                            Tidak ada data pengajuan.
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
-
-                            <!-- No Results -->
-                            <div
-                                v-if="pengajuanList.length === 0"
-                                class="text-center py-8 text-gray-500"
-                            >
-                                <svg
-                                    class="mx-auto h-12 w-12 text-gray-400 mb-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                    ></path>
-                                </svg>
-                                <p>Tidak ada pengajuan yang ditemukan</p>
-                            </div>
-                        </div>
-
-                        <!-- Pagination -->
-                        <div
-                            v-if="pagination && pagination.last_page > 1"
-                            class="mt-6 flex items-center justify-between"
-                        >
-                            <div class="flex items-center">
-                                <span class="text-sm text-gray-700">
-                                    Halaman {{ pagination.current_page }} dari
-                                    {{ pagination.last_page }}
-                                </span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <button
-                                    @click="goToPage(pagination.prev_page_url)"
-                                    :disabled="!pagination.prev_page_url"
-                                    :class="[
-                                        'px-3 py-1 rounded-md text-sm',
-                                        pagination.prev_page_url
-                                            ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed',
-                                    ]"
-                                >
-                                    Sebelumnya
-                                </button>
-
-                                <div class="flex space-x-1">
-                                    <template v-for="page in pagination.links" :key="page.label">
-                                        <button
-                                            v-if="
-                                                page.url &&
-                                                !page.label.includes('Previous') &&
-                                                !page.label.includes('Next')
-                                            "
-                                            @click="goToPage(page.url)"
-                                            :class="[
-                                                'px-3 py-1 rounded-md text-sm',
-                                                page.active
-                                                    ? 'bg-indigo-600 text-white'
-                                                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50',
-                                            ]"
-                                        >
-                                            {{ page.label }}
-                                        </button>
-                                    </template>
-                                </div>
-
-                                <button
-                                    @click="goToPage(pagination.next_page_url)"
-                                    :disabled="!pagination.next_page_url"
-                                    :class="[
-                                        'px-3 py-1 rounded-md text-sm',
-                                        pagination.next_page_url
-                                            ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed',
-                                    ]"
-                                >
-                                    Selanjutnya
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Modal Detail & Proses dengan Fixed Header/Footer -->
-        <Modal :show="showDetailModal" @close="closeModal" max-width="4xl">
-            <div class="flex flex-col h-[80vh]" v-if="selectedPengajuan">
-                <!-- Fixed Header -->
-                <div class="px-6 py-4 border-b border-gray-200 bg-white">
+        <Modal :show="showDetailModal" @close="closeModal" max-width="2xl">
+            <form @submit.prevent="submitPerubahan" v-if="selectedPengajuan">
+                <div class="px-6 py-4 border-b">
                     <h2 class="text-lg font-medium text-gray-900">
-                        Detail Pengajuan: {{ selectedPengajuan.jenis_surat.nama_surat }}
+                        Detail: {{ selectedPengajuan.jenis_surat.nama_surat }}
                     </h2>
                 </div>
+                <div class="p-6 space-y-6">
+                    <p><strong>Pemohon:</strong> {{ selectedPengajuan.user.name }}</p>
 
-                <!-- Scrollable Content -->
-                <div class="flex-1 overflow-y-auto px-6 py-4">
-                    <div class="space-y-4 text-sm">
-                        <!-- Data Pemohon, Lampiran, dll. -->
-                        <p>
-                            <strong>Pemohon:</strong>
-                            {{ selectedPengajuan.data_pemohon.nama }} (NIK:
-                            {{ selectedPengajuan.data_pemohon.nik }})
-                        </p>
-                        <div>
-                            <strong>Lampiran:</strong>
-                            <ul class="list-disc list-inside ml-4 mt-2">
-                                <li v-for="(path, name) in selectedPengajuan.lampiran" :key="name">
-                                    <a
-                                        :href="'/storage/' + path"
-                                        target="_blank"
-                                        class="text-indigo-600 hover:underline"
-                                        >{{ name.replace(/_/g, ' ') }}</a
-                                    >
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="pt-4 border-t">
-                            <InputLabel for="nomor_surat" value="Nomor Surat" />
-                            <input
-                                v-model="form.nomor_surat"
-                                id="nomor_surat"
-                                type="text"
-                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                                placeholder="cth: 005/DS/I/2025"
-                            />
-                        </div>
-
-                        <div class="pt-4 border-t">
-                            <h3 class="font-medium mb-4">Update Status Pengajuan</h3>
-                            <div class="space-y-4">
-                                <div>
-                                    <InputLabel for="status" value="Status" />
-                                    <select
-                                        v-model="form.status"
-                                        id="status"
-                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                                    >
-                                        <option value="pending">Pending</option>
-                                        <option value="diproses">Diproses</option>
-                                        <option value="selesai">Selesai</option>
-                                        <option value="ditolak">Ditolak</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <InputLabel
-                                        for="keterangan_admin"
-                                        value="Keterangan / Alasan (jika ditolak)"
-                                    />
-                                    <textarea
-                                        v-model="form.keterangan_admin"
-                                        id="keterangan_admin"
-                                        rows="3"
-                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                                    ></textarea>
-                                </div>
-                            </div>
-                        </div>
+                    <div>
+                        <InputLabel for="nomor_surat" value="Nomor Surat" />
+                        <input
+                            v-model="form.nomor_surat"
+                            id="nomor_surat"
+                            type="text"
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+                            placeholder="cth: 005/DS/I/2025"
+                        />
                     </div>
-                </div>
 
-                <!-- Fixed Footer -->
-                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
-                    <div class="flex justify-end space-x-3">
-                        <SecondaryButton @click="closeModal">Tutup</SecondaryButton>
-                        <PrimaryButton @click="updateStatus" :disabled="form.processing">
-                            Simpan Perubahan
-                        </PrimaryButton>
-                    </div>
-                </div>
-            </div>
-        </Modal>
-
-        <!-- Modal Cetak dengan Fixed Layout -->
-        <Modal :show="showCetakModal" @close="closeCetakModal" max-width="2xl">
-            <div class="flex flex-col h-auto" v-if="selectedPengajuanCetak">
-                <!-- Fixed Header -->
-                <div class="px-6 py-4 border-b border-gray-200 bg-white">
-                    <div class="text-center">
-                        <svg
-                            class="mx-auto h-12 w-12 text-gray-400 mb-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                    <div>
+                        <InputLabel for="status" value="Ubah Status" />
+                        <select
+                            v-model="form.status"
+                            id="status"
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
                         >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-                            ></path>
-                        </svg>
-                        <h2 class="text-xl font-semibold text-gray-900">Pilih Format Cetak</h2>
-                        <p class="text-gray-600 mt-1">
-                            {{ selectedPengajuanCetak.jenis_surat.nama_surat }}
-                        </p>
+                            <option value="pending">Pending</option>
+                            <option value="diproses">Diproses</option>
+                            <option value="selesai" disabled>
+                                Selesai (Otomatis via Konfirmasi)
+                            </option>
+                            <option value="ditolak">Ditolak</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <InputLabel for="keterangan_admin" value="Keterangan Admin (Opsional)" />
+                        <textarea
+                            v-model="form.keterangan_admin"
+                            id="keterangan_admin"
+                            rows="3"
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+                        ></textarea>
                     </div>
                 </div>
-
-                <!-- Content -->
-                <div class="px-6 py-6">
-                    <div class="grid grid-cols-2 gap-4">
-                        <!-- Opsi PDF -->
-                        <a
-                            :href="route('admin.proses.cetak', selectedPengajuanCetak.id)"
-                            target="_blank"
-                            @click="closeCetakModal"
-                            class="group p-6 border-2 border-gray-200 rounded-lg hover:border-red-300 hover:bg-red-50 transition-all duration-200 cursor-pointer"
-                        >
-                            <div class="flex flex-col items-center">
-                                <svg
-                                    class="h-12 w-12 text-red-500 mb-3 group-hover:scale-110 transition-transform"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                    ></path>
-                                </svg>
-                                <h3 class="text-lg font-medium text-gray-900 mb-1">PDF</h3>
-                                <p class="text-sm text-gray-500 text-center">
-                                    Format portable, cocok untuk dilihat dan dicetak
-                                </p>
-                            </div>
-                        </a>
-
-                        <!-- Opsi Word -->
-                        <a
-                            :href="route('admin.proses.cetakWord', selectedPengajuanCetak.id)"
-                            target="_blank"
-                            @click="closeCetakModal"
-                            class="group p-6 border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 cursor-pointer"
-                        >
-                            <div class="flex flex-col items-center">
-                                <svg
-                                    class="h-12 w-12 text-blue-500 mb-3 group-hover:scale-110 transition-transform"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                    ></path>
-                                </svg>
-                                <h3 class="text-lg font-medium text-gray-900 mb-1">Word</h3>
-                                <p class="text-sm text-gray-500 text-center">
-                                    Format dokumen, dapat diedit lebih lanjut
-                                </p>
-                            </div>
-                        </a>
-                    </div>
+                <div class="px-6 py-4 border-t bg-gray-50 flex justify-end space-x-3">
+                    <SecondaryButton type="button" @click="closeModal">Tutup</SecondaryButton>
+                    <PrimaryButton type="submit" :disabled="form.processing"
+                        >Simpan Perubahan</PrimaryButton
+                    >
                 </div>
-
-                <!-- Fixed Footer -->
-                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
-                    <SecondaryButton @click="closeCetakModal" class="w-full">
-                        Batal
-                    </SecondaryButton>
-                </div>
-            </div>
+            </form>
         </Modal>
     </AuthenticatedLayout>
 </template>
-
-<style scoped>
-    /* Smooth transitions untuk hover effects */
-    .group:hover svg {
-        transform: scale(1.1);
-    }
-</style>

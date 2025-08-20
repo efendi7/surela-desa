@@ -5,36 +5,25 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 // General Controllers
+use App\Http\Controllers\LandingPageController; 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PengajuanSuratController;
+use App\Http\Controllers\PublicProfilController;
 
 // Admin Controllers
 use App\Http\Controllers\Admin\ProfilDesaController;
 use App\Http\Controllers\Admin\JenisSuratController;
 use App\Http\Controllers\Admin\ProsesPengajuanController;
-use App\Http\Controllers\Admin\UserController; // Pastikan controller ini ada
+use App\Http\Controllers\Admin\UserController;
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| Di sini Anda dapat mendaftarkan rute web untuk aplikasi Anda. Rute-rute
-| ini dimuat oleh RouteServiceProvider dalam sebuah grup yang
-| berisi grup middleware "web".
-|
 */
 
 // RUTE PUBLIK
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
-
+ Route::get('/', [LandingPageController::class, 'index'])->name('welcome');
 // RUTE UMUM (UNTUK SEMUA USER YANG LOGIN)
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
@@ -46,14 +35,22 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-
 // === RUTE UNTUK WARGA (setelah login) ===
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/pengajuan-surat', [PengajuanSuratController::class, 'index'])->name('pengajuan.index');
-    Route::post('/pengajuan-surat', [PengajuanSuratController::class, 'store'])->name('pengajuan.store');
-    Route::delete('/pengajuan-surat/{pengajuanSurat}', [PengajuanSuratController::class, 'destroy'])->name('pengajuan.destroy');
+    // CRUD Pengajuan oleh Warga
+    Route::resource('pengajuan-surat', PengajuanSuratController::class)
+        ->only(['index', 'store', 'destroy'])
+        ->names('pengajuan');
+
+    // Route untuk WARGA mengunduh suratnya yang sudah selesai
+    Route::get('/pengajuan-surat/{pengajuan}/download', [ProsesPengajuanController::class, 'downloadSuratFinal'])
+         ->name('warga.pengajuan.download');
 });
 
+// RUTE PROFIL DESA PUBLIK
+Route::get('/profil/{page}', [PublicProfilController::class, 'show'])
+    ->where('page', 'sejarah|visi-misi|struktur-organisasi')
+    ->name('profil.show');
 
 // === RUTE KHUSUS ADMIN ===
 Route::middleware(['auth', 'verified', \App\Http\Middleware\IsAdmin::class])
@@ -61,30 +58,36 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\IsAdmin::class])
     ->name('admin.')
     ->group(function () {
 
-    // Profil Desa
-    Route::get('/profil-desa', [ProfilDesaController::class, 'index'])->name('profil-desa.index');
-    Route::post('/profil-desa', [ProfilDesaController::class, 'update'])->name('profil-desa.update');
+        // Profil Desa
+        Route::get('/profil-desa', [ProfilDesaController::class, 'index'])->name('profil-desa.index');
+        Route::post('/profil-desa', [ProfilDesaController::class, 'update'])->name('profil-desa.update');
 
-    // Manajemen Jenis Surat
-    Route::resource('jenis-surat', JenisSuratController::class)->except(['create', 'show', 'edit']);
+        // Manajemen Jenis Surat (CRUD)
+        Route::resource('jenis-surat', JenisSuratController::class)->except(['create', 'show', 'edit']);
 
-     Route::get('/template/download/{jenisSurat}', [JenisSuratController::class, 'downloadTemplate'])
-        ->name('template.download');
+        // Proses Pengajuan
+        Route::get('/proses-pengajuan', [ProsesPengajuanController::class, 'index'])->name('proses.index');
+        
+        // Update status pengajuan (tanpa file)
+        Route::patch('/proses-pengajuan/{pengajuanSurat}', [ProsesPengajuanController::class, 'update'])->name('proses.update');
+       
+        // Route untuk admin mengunduh template Word untuk diedit
+        Route::get('/proses-pengajuan/{pengajuan}/download-template', [ProsesPengajuanController::class, 'downloadTemplate'])
+            ->name('proses.downloadTemplate');
 
-    // Proses Pengajuan (NAMA SUDAH DIPERBAIKI untuk menghindari konflik)
-    Route::get('/proses-pengajuan', [ProsesPengajuanController::class, 'index'])->name('proses.index');
-    Route::patch('/proses-pengajuan/{pengajuanSurat}', [ProsesPengajuanController::class, 'update'])->name('proses.update');
-    Route::get('/proses-pengajuan/{pengajuanSurat}/cetak', [ProsesPengajuanController::class, 'cetakPdf'])->name('proses.cetak');
-    Route::get('/proses-pengajuan/{pengajuanSurat}/cetak-word', [ProsesPengajuanController::class, 'cetakWord'])
-    ->name('proses.cetakWord');
+             Route::post('/pengajuan/{pengajuan}/upload-file', [ProsesPengajuanController::class, 'uploadFile'])->name('proses.uploadFile');
+Route::delete('/pengajuan/{pengajuan}/hapus-file', [ProsesPengajuanController::class, 'hapusFile'])->name('proses.hapusFile');
+Route::post('/pengajuan/{pengajuan}/konfirmasi-final', [ProsesPengajuanController::class, 'konfirmasiFinal'])->name('proses.konfirmasiFinal');
 
-    // Riwayat Pengajuan
-    Route::get('/pengajuan/riwayat', [ProsesPengajuanController::class, 'riwayat'])->name('pengajuan.riwayat');
-    
-    // Kelola Pengguna (FITUR BARU DITAMBAHKAN)
-    Route::resource('users', UserController::class)->except(['create', 'show', 'edit']);
-    Route::post('/users/{user}/restore', [UserController::class, 'restore'])->name('users.restore');
+
+       
+
+     
+
+            
+
+        // Kelola Pengguna
+        Route::resource('users', UserController::class)->except(['create', 'show', 'edit']);
 });
-
 
 require __DIR__.'/auth.php';

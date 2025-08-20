@@ -25,6 +25,19 @@ class ProfilDesa extends Model
         'nama_kepala_desa',
         'logo',
         'kode_pos',
+        'sejarah',
+        'visi',
+        'misi',
+        'struktur_organisasi',
+    ];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    // PERUBAHAN DI SINI: Menambahkan casting untuk kolom JSON
+    protected $casts = [
+        'struktur_organisasi' => 'array',
     ];
 }

@@ -23,10 +23,11 @@ class PengajuanSuratController extends Controller
             'jenisSuratTersedia' => JenisSurat::all(['id', 'nama_surat', 'syarat']),
             
             // Mengambil riwayat pengajuan milik user yang sedang login
-            'riwayatPengajuan' => PengajuanSurat::where('user_id', $user->id)
-                                    ->with('jenisSurat:id,nama_surat') // Ambil relasi nama surat
-                                    ->latest() // Urutkan dari yang terbaru
-                                    ->get(),
+           'riwayatPengajuan' => PengajuanSurat::where('user_id', $user->id)
+                        ->with('jenisSurat:id,nama_surat')
+                        ->latest()
+                        // Ambil kolom yang dibutuhkan, TERMASUK 'status' dan 'file_hasil'
+                        ->get(['id', 'jenis_surat_id', 'user_id', 'status', 'file_hasil', 'created_at', 'lampiran']),
         ]);
     }
 
