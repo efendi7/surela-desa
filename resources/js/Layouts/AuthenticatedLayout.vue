@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
 import { usePage } from '@inertiajs/vue3';
+import { useSidebar } from '@/Composables/useSidebar';
 import Sidebar from '@/Components/Sidebar.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
@@ -10,96 +10,107 @@ const page = usePage();
 const user = page.props.auth.user;
 const profilDesa = page.props.profilDesa;
 
-// State untuk mengontrol kondisi sidebar dan mobile
-const isCollapsed = ref(false);
-const isMobile = ref(false);
-const sidebarOpen = ref(false);
+// Gunakan useSidebar composable
+const {
+    isCollapsed,
+    isMobile,
+    sidebarOpen,
+    overlayVisible,
+    toggleCollapse,
+    toggleMobile,
+    closeMobile
+} = useSidebar();
 
-// Fungsi untuk mengecek apakah device mobile
-const checkMobile = () => {
-    isMobile.value = window.innerWidth < 768; // md breakpoint
+// Handler untuk toggle sidebar (desktop dan mobile)
+const handleToggleSidebar = () => {
     if (isMobile.value) {
-        isCollapsed.value = false; // Reset collapsed state on mobile
-    }
-};
-
-// Fungsi untuk mengubah state sidebar
-const toggleSidebar = () => {
-    if (isMobile.value) {
-        sidebarOpen.value = !sidebarOpen.value;
+        toggleMobile();
     } else {
-        isCollapsed.value = !isCollapsed.value;
+        toggleCollapse();
     }
 };
-
-// Fungsi untuk menutup sidebar mobile ketika klik di luar
-const closeMobileSidebar = () => {
-    if (isMobile.value) {
-        sidebarOpen.value = false;
-    }
-};
-
-// Setup event listeners
-onMounted(() => {
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-});
-
-onUnmounted(() => {
-    window.removeEventListener('resize', checkMobile);
-});
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-100">
-        <!-- Mobile overlay -->
+    <div class="min-h-screen bg-gray-100 relative">
+        <!-- Mobile overlay dengan z-index yang tepat -->
         <div 
-            v-if="isMobile && sidebarOpen"
-            class="fixed inset-0 bg-black bg-opacity-50 z-40"
-            @click="closeMobileSidebar"
+            v-if="overlayVisible"
+            class="fixed inset-0 bg-black bg-opacity-50 z-25 md:hidden"
+            @click="closeMobile"
         ></div>
 
+        <!-- Sidebar dengan z-index yang dinamis -->
         <Sidebar 
             :user="user" 
             :profilDesa="profilDesa" 
             :is-collapsed="isCollapsed"
             :is-mobile="isMobile"
             :sidebar-open="sidebarOpen"
-            @toggle-collapse="toggleSidebar"
-            @close-mobile="closeMobileSidebar"
+            @toggle-collapse="toggleCollapse"
+            @close-mobile="closeMobile"
         />
         
+        <!-- Main content area dengan z-index yang tepat -->
         <div 
             :class="[
-                'flex flex-col transition-all duration-300 ease-in-out',
+                'flex flex-col h-screen transition-all duration-300 ease-in-out relative',
                 // Desktop behavior
                 !isMobile && (isCollapsed ? 'ml-16' : 'ml-72'),
                 // Mobile behavior - no margin, full width
                 isMobile && 'ml-0'
             ]"
+            style="z-index: 1; position: relative;"
         >
-            <!-- Header -->
-            <div class="bg-white shadow-sm border-b border-gray-200 px-4 md:px-6 py-4">
+            <!-- Fixed Header dengan z-index yang tepat -->
+            <div class="bg-white shadow-sm border-b border-gray-200 px-4 md:px-6 py-4 relative z-20 flex-shrink-0">
                 <div class="flex justify-between items-center">
-                    <!-- Mobile menu button -->
+                    <!-- Toggle button (mobile & desktop) -->
                     <button
-                        v-if="isMobile"
-                        @click="toggleSidebar"
-                        class="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                        @click="handleToggleSidebar"
+                        class="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors duration-200 z-30 relative"
+                        :title="isMobile ? 'Toggle Menu' : (isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar')"
                     >
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        <!-- Mobile: hamburger icon -->
+                        <svg 
+                            v-if="isMobile" 
+                            class="w-6 h-6" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                        >
+                            <path 
+                                stroke-linecap="round" 
+                                stroke-linejoin="round" 
+                                stroke-width="2" 
+                                d="M4 6h16M4 12h16M4 18h16"
+                            ></path>
+                        </svg>
+                        <!-- Desktop: collapse/expand icon -->
+                        <svg 
+                            v-else
+                            class="w-5 h-5" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                        >
+                            <path 
+                                stroke-linecap="round" 
+                                stroke-linejoin="round" 
+                                stroke-width="2" 
+                                :d="isCollapsed ? 'M13 7l5 5-5 5M6 7l5 5-5 5' : 'M11 17l-5-5 5-5M18 17l-5-5 5-5'"
+                            ></path>
                         </svg>
                     </button>
 
                     <!-- Header content -->
-                    <div v-if="$slots.header" class="flex-1" :class="isMobile ? 'ml-4' : ''">
+                    <div v-if="$slots.header" class="flex-1 ml-4">
                         <slot name="header" />
                     </div>
                     <div v-else class="flex-1"></div>
                     
-                    <!-- User dropdown -->
-                    <div class="relative">
+                    <!-- User dropdown dengan z-index tinggi -->
+                    <div class="relative z-40">
                         <Dropdown align="right" width="48">
                             <template #trigger>
                                 <button class="flex items-center space-x-2 px-2 md:px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors duration-200">
@@ -134,10 +145,52 @@ onUnmounted(() => {
                 </div>
             </div>
 
-            <!-- Main content -->
-            <main class="flex-1 p-4 md:p-6">
+            <!-- Scrollable Main content dengan overflow -->
+            <main class="flex-1 p-4 md:p-6 relative z-1 overflow-y-auto">
                 <slot />
             </main>
         </div>
     </div>
 </template>
+
+<style scoped>
+/* Custom z-index utilities */
+.z-25 {
+    z-index: 25;
+}
+
+/* Ensure proper stacking context */
+.relative {
+    position: relative;
+}
+
+/* Prevent pointer events interference */
+main {
+    pointer-events: auto;
+}
+
+/* Smooth transitions */
+.transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom scrollbar untuk webkit browsers */
+main::-webkit-scrollbar {
+    width: 6px;
+}
+
+main::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+main::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+main::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>

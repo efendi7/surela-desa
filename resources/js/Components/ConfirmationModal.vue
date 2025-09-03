@@ -15,7 +15,7 @@ const props = defineProps({
     },
     message: {
         type: String,
-        required: true,
+        default: 'Apakah Anda yakin ingin melakukan tindakan ini?', // Berikan default value
     },
     confirmText: {
         type: String,

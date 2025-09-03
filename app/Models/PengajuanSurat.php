@@ -21,12 +21,14 @@ class PengajuanSurat extends Model
         'nomor_surat',
         'file_word', 
         'file_final',
-        'file_hasil'
+        'file_hasil',
+        'timeline'
     ];
 
     protected $casts = [
         'data_pemohon' => 'array',
         'lampiran' => 'array',
+        'timeline' => 'array',
     ];
 
     public function user(): BelongsTo

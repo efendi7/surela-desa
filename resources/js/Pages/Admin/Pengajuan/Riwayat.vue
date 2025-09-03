@@ -6,16 +6,20 @@
     import PengajuanTable from './Partials/PengajuanTable.vue';
     import PengajuanDetailModal from './Partials/PengajuanDetailModal.vue';
     import FlashMessage from '@/Components/FlashMessage.vue';
+    import Pagination from '@/Components/Pagination.vue'; // Import komponen pagination
 
     const props = defineProps({
         pengajuanList: Object,
     });
 
     // STATE MANAGEMENT
-    // State untuk data dan modal detail tetap ada
     const pengajuanData = ref([...props.pengajuanList.data]);
     const showDetailModal = ref(false);
     const selectedPengajuan = ref(null);
+    
+    // PAGINATION STATE
+    const currentPage = ref(1);
+    const perPage = 10; // Items per page
 
     // FILTER STATE
     const filters = ref({
@@ -26,7 +30,6 @@
     });
 
     // COMPUTED PROPERTIES
-    // Computed untuk filtering dan options tetap diperlukan
     const jenisSuratOptions = computed(() => {
         const uniqueJenis = [
             ...new Set(pengajuanData.value.map((p) => p.jenis_surat?.nama_surat).filter(Boolean)),
@@ -69,13 +72,30 @@
         return result;
     });
 
+    // PAGINATION COMPUTED PROPERTIES
+    const totalItems = computed(() => filteredPengajuan.value.length);
+    const totalPages = computed(() => Math.ceil(totalItems.value / perPage));
+    
+    const paginatedPengajuan = computed(() => {
+        const start = (currentPage.value - 1) * perPage;
+        const end = start + perPage;
+        return filteredPengajuan.value.slice(start, end);
+    });
+
     // EVENT HANDLERS
     const handleFilterChange = (newFilters) => {
         filters.value = newFilters;
+        // Reset to first page when filters change
+        currentPage.value = 1;
     };
 
     const handleClearFilters = () => {
         filters.value = { search: '', status: '', jenisSurat: '', sort: 'desc' };
+        currentPage.value = 1;
+    };
+
+    const handlePageChange = (page) => {
+        currentPage.value = page;
     };
 
     const openDetailModal = (pengajuan) => {
@@ -89,7 +109,6 @@
     };
 
     // ACTIONS (LOGIC & API CALLS)
-    // Fungsi untuk update data lokal jika ada perubahan dari modal detail (misal: edit keterangan)
     const updateLocalData = (updatedPengajuan) => {
         const index = pengajuanData.value.findIndex((p) => p.id === updatedPengajuan.id);
         if (index !== -1) {
@@ -97,7 +116,6 @@
         }
     };
 
-    // Fungsi submit dari modal detail tetap ada
     const submitPerubahan = ({ id, formData }) => {
         formData.patch(route('admin.proses.update', { pengajuanSurat: id }), {
             preserveScroll: true,
@@ -107,10 +125,6 @@
             },
         });
     };
-
-    // --- FUNGSI-FUNGSI AKSI DIHILANGKAN ---
-    // triggerFileUpload, handleFileSelected, konfirmasiSelesai, hapusFile,
-    // dan semua yang berhubungan dengan ConfirmationModal dihilangkan karena tidak relevan.
 
 </script>
 
@@ -137,12 +151,22 @@
                         />
 
                         <PengajuanTable
-                            :pengajuan="filteredPengajuan"
-                            :total-data="pengajuanData.length"
+                            :pengajuan="paginatedPengajuan"
+                            :total-data="totalItems"
                             :is-riwayat="true"
                             @open-detail="openDetailModal"
                         />
-                        </div>
+
+                        <!-- Pagination Component -->
+                        <Pagination
+                            v-if="totalPages > 1"
+                            :current-page="currentPage"
+                            :total-pages="totalPages"
+                            :per-page="perPage"
+                            :total-items="totalItems"
+                            @page-changed="handlePageChange"
+                        />
+                    </div>
                 </div>
             </div>
         </div>
@@ -154,5 +178,5 @@
             @submit="submitPerubahan"
         />
         
-        </AuthenticatedLayout>
+    </AuthenticatedLayout>
 </template>

@@ -22,8 +22,8 @@ const showSlot = ref(props.show);
 
 watch(
     () => props.show,
-    () => {
-        if (props.show) {
+    (newVal) => {
+        if (newVal) {
             document.body.style.overflow = 'hidden';
             showSlot.value = true;
             dialog.value?.showModal();
@@ -78,6 +78,7 @@ const maxWidthClass = computed(() => {
         ref="dialog"
     >
         <div class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:px-0">
+            <!-- Backdrop -->
             <Transition
                 enter-active-class="ease-out duration-300"
                 enter-from-class="opacity-0"
@@ -87,12 +88,13 @@ const maxWidthClass = computed(() => {
                 leave-to-class="opacity-0"
             >
                 <div
-                    v-show="show"
+                    v-show="props.show"
                     class="fixed inset-0 bg-gray-500 opacity-75"
                     @click="close"
                 />
             </Transition>
 
+            <!-- Modal Content -->
             <Transition
                 enter-active-class="ease-out duration-300"
                 enter-from-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
@@ -102,7 +104,7 @@ const maxWidthClass = computed(() => {
                 leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
                 <div
-                    v-show="show"
+                    v-show="props.show"
                     class="relative w-full transform rounded-lg bg-white shadow-xl transition-all sm:mx-auto"
                     :class="maxWidthClass"
                     @click.stop

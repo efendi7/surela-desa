@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\ProfilDesaController;
 use App\Http\Controllers\Admin\JenisSuratController;
 use App\Http\Controllers\Admin\ProsesPengajuanController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,7 +24,8 @@ use App\Http\Controllers\Admin\UserController;
 */
 
 // RUTE PUBLIK
- Route::get('/', [LandingPageController::class, 'index'])->name('welcome');
+Route::get('/', [LandingPageController::class, 'index'])->name('welcome');
+
 // RUTE UMUM (UNTUK SEMUA USER YANG LOGIN)
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
@@ -40,11 +42,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // CRUD Pengajuan oleh Warga
     Route::resource('pengajuan-surat', PengajuanSuratController::class)
         ->only(['index', 'store', 'destroy'])
-        ->names('pengajuan');
+        ->names('pengajuan')
+        ->parameters(['pengajuan-surat' => 'pengajuan']);
 
-    // Route untuk WARGA mengunduh suratnya yang sudah selesai
-    Route::get('/pengajuan-surat/{pengajuan}/download', [ProsesPengajuanController::class, 'downloadSuratFinal'])
-         ->name('warga.pengajuan.download');
+    // Route tambahan untuk pengajuan surat
+    Route::get('/pengajuan-surat/{pengajuan}/lampiran/{key}', [PengajuanSuratController::class, 'viewLampiran'])
+        ->name('pengajuan.lampiran.view');
+    
+    Route::get('/pengajuan-surat/{pengajuan}/download', [PengajuanSuratController::class, 'download'])
+        ->name('pengajuan.download');
+
+    // Route untuk WARGA mengunduh suratnya yang sudah selesai (alternatif dari admin controller)
+    Route::get('/pengajuan-surat/{pengajuan}/download-final', [ProsesPengajuanController::class, 'downloadSuratFinal'])
+        ->name('warga.pengajuan.download');
+
+    // Route untuk menghapus riwayat
+    Route::delete('/pengajuan-surat/riwayat/{pengajuan}', [PengajuanSuratController::class, 'destroyRiwayat'])
+        ->name('pengajuan.destroy-riwayat');
 });
 
 // RUTE PROFIL DESA PUBLIK
@@ -68,26 +82,25 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\IsAdmin::class])
         // Proses Pengajuan
         Route::get('/proses-pengajuan', [ProsesPengajuanController::class, 'index'])->name('proses.index');
         
+        // ==================================================================================
+        // == RUTE BARU UNTUK GENERATE SURAT DITAMBAHKAN DI SINI ==
+        // Nama rute 'pengajuan.generate' akan menjadi 'admin.pengajuan.generate' karena ada di dalam grup.
+        Route::get('/pengajuan/{pengajuan}/generate-surat', [ProsesPengajuanController::class, 'generateSurat'])->name('pengajuan.generate');
+        // ==================================================================================
+        
         // Update status pengajuan (tanpa file)
         Route::patch('/proses-pengajuan/{pengajuanSurat}', [ProsesPengajuanController::class, 'update'])->name('proses.update');
-       
-        // Route untuk admin mengunduh template Word untuk diedit
-        Route::get('/proses-pengajuan/{pengajuan}/download-template', [ProsesPengajuanController::class, 'downloadTemplate'])
-            ->name('proses.downloadTemplate');
-
-             Route::post('/pengajuan/{pengajuan}/upload-file', [ProsesPengajuanController::class, 'uploadFile'])->name('proses.uploadFile');
-Route::delete('/pengajuan/{pengajuan}/hapus-file', [ProsesPengajuanController::class, 'hapusFile'])->name('proses.hapusFile');
-Route::post('/pengajuan/{pengajuan}/konfirmasi-final', [ProsesPengajuanController::class, 'konfirmasiFinal'])->name('proses.konfirmasiFinal');
-
-  Route::get('/proses-pengajuan/riwayat', [ProsesPengajuanController::class, 'riwayat'])->name('proses.riwayat');
-   Route::delete('/proses-pengajuan/{pengajuan}', [\App\Http\Controllers\Admin\ProsesPengajuanController::class, 'destroy'])->name('proses.destroy');
-
-
-       
-
+        
      
 
-            
+        // Upload dan manage files
+        Route::post('/pengajuan/{pengajuan}/upload-file', [ProsesPengajuanController::class, 'uploadFile'])->name('proses.uploadFile');
+        Route::delete('/pengajuan/{pengajuan}/hapus-file', [ProsesPengajuanController::class, 'hapusFile'])->name('proses.hapusFile');
+        Route::post('/pengajuan/{pengajuan}/konfirmasi-final', [ProsesPengajuanController::class, 'konfirmasiFinal'])->name('proses.konfirmasiFinal');
+
+        // Riwayat dan delete
+        Route::get('/proses-pengajuan/riwayat', [ProsesPengajuanController::class, 'riwayat'])->name('proses.riwayat');
+        Route::delete('/proses-pengajuan/{pengajuan}', [ProsesPengajuanController::class, 'destroy'])->name('proses.destroy');
 
         // Kelola Pengguna
         Route::resource('users', UserController::class)->except(['create', 'show', 'edit']);

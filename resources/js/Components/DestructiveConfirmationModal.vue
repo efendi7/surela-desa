@@ -7,12 +7,21 @@ import TextInput from '@/Components/TextInput.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 
 const props = defineProps({
-    show: Boolean,
-    title: String,
-    message: String,
+    show: {
+        type: Boolean,
+        default: false,
+    },
+    title: {
+        type: String,
+        default: 'Konfirmasi Tindakan Berbahaya',
+    },
+    message: {
+        type: String,
+        default: 'Tindakan ini tidak dapat dibatalkan. Pastikan Anda yakin sebelum melanjutkan.',
+    },
     confirmationWord: {
         type: String,
-        required: true,
+        default: 'HAPUS', // ✅ Berikan default value alih-alih required: true
     },
     confirmText: {
         type: String,

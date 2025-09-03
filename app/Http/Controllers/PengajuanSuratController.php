@@ -2,102 +2,118 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\JenisSurat;
 use App\Models\PengajuanSurat;
-use Illuminate\Http\Request;
+use App\Services\Interfaces\PengajuanSuratServiceInterface;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
-use Illuminate\Support\Str; // BARU: Tambahkan baris ini untuk mengimpor Str helper
+use App\Http\Requests\StorePengajuanSuratRequest;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Inertia\Response;
 
 class PengajuanSuratController extends Controller
 {
+    use AuthorizesRequests;
+
+    protected PengajuanSuratServiceInterface $pengajuanService;
+
+    public function __construct(PengajuanSuratServiceInterface $pengajuanService)
+    {
+        $this->pengajuanService = $pengajuanService;
+    }
+
     /**
      * Menampilkan halaman utama pengajuan surat untuk warga.
      */
-    public function index()
+    public function index(): Response
     {
         $user = Auth::user();
+        $data = $this->pengajuanService->getIndexData($user);
 
-        return Inertia::render('Pengajuan/Index', [
-            'jenisSuratTersedia' => JenisSurat::all(['id', 'nama_surat', 'syarat']),
-            'riwayatPengajuan' => PengajuanSurat::where('user_id', $user->id)
-                                    ->with('jenisSurat:id,nama_surat')
-                                    ->latest()
-                                    ->get(['id', 'jenis_surat_id', 'user_id', 'status', 'file_hasil', 'created_at', 'lampiran']),
-        ]);
+        return Inertia::render('Pengajuan/Index', $data);
     }
 
     /**
-     * Menyimpan pengajuan surat baru yang dibuat oleh warga.
+     * Menyimpan pengajuan surat baru.
      */
-    public function store(Request $request)
+    public function store(StorePengajuanSuratRequest $request)
     {
-        $user = Auth::user();
-        $jenisSurat = JenisSurat::findOrFail($request->jenis_surat_id);
+        try {
+            $validated = $request->validated();
+            $this->pengajuanService->store($validated, Auth::id());
 
-        $validationRules = [
-            'jenis_surat_id' => 'required|exists:jenis_surats,id',
-        ];
-
-        if ($jenisSurat->syarat) {
-            foreach ($jenisSurat->syarat as $syarat) {
-                $slug = Str::slug($syarat, '_'); 
-                $validationRules["lampiran.{$slug}"] = 'required|file|mimes:pdf|max:2048';
-            }
+            return redirect()
+                ->route('pengajuan.index')
+                ->with('success', 'Pengajuan surat berhasil dikirim.');
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
+    }
+    
+    /**
+     * Mengunduh file hasil pengajuan.
+     */
+    public function download(PengajuanSurat $pengajuan): BinaryFileResponse
+    {
+        $this->authorize('view', $pengajuan);
 
-        $request->validate($validationRules);
-
-        $dataPemohon = [
-            'nama' => $user->name,
-            'nik' => $user->nik,
-            'email' => $user->email,
-            'phone' => $user->phone,
-            'address' => $user->address,
-        ];
-
-        $lampiranPaths = [];
-        if ($request->hasFile('lampiran')) {
-            foreach ($request->file('lampiran') as $key => $file) {
-                $path = $file->store('lampiran_warga', 'public');
-                $lampiranPaths[$key] = $path; 
-            }
+        try {
+            return $this->pengajuanService->downloadFileHasil($pengajuan);
+        } catch (\Exception $e) {
+            abort(404, $e->getMessage());
         }
-
-        PengajuanSurat::create([
-            'user_id' => $user->id,
-            'jenis_surat_id' => $request->jenis_surat_id,
-            'data_pemohon' => $dataPemohon,
-            'status' => 'pending',
-            'lampiran' => $lampiranPaths, 
-        ]);
-
-        return redirect()->route('pengajuan.index')->with('success', 'Pengajuan surat berhasil dikirim.');
     }
 
     /**
-     * Membatalkan pengajuan surat yang statusnya masih 'pending'.
+     * Method untuk melihat lampiran
      */
-    public function destroy(PengajuanSurat $pengajuanSurat)
+    public function viewLampiran(PengajuanSurat $pengajuan, string $key): BinaryFileResponse
     {
-        if ($pengajuanSurat->user_id !== Auth::id()) {
-            abort(403, 'Unauthorized action.');
-        }
+        $this->authorize('view', $pengajuan);
 
-        if ($pengajuanSurat->status !== 'pending') {
-            return redirect()->route('pengajuan.index')->with('error', 'Pengajuan ini sudah diproses dan tidak bisa dibatalkan.');
+        try {
+            return $this->pengajuanService->viewLampiran($pengajuan, $key);
+        } catch (\Exception $e) {
+            abort(404, $e->getMessage());
         }
-        
-        // Hapus file lampiran dari storage jika ada
-        if ($pengajuanSurat->lampiran && is_array($pengajuanSurat->lampiran)) {
-            foreach ($pengajuanSurat->lampiran as $path) {
-                Storage::disk('public')->delete($path);
-            }
+    }
+
+    /**
+     * Membatalkan pengajuan yang masih pending.
+     */
+    public function destroy(PengajuanSurat $pengajuan)
+    {
+        $this->authorize('delete', $pengajuan);
+
+        try {
+            $this->pengajuanService->cancelPengajuan($pengajuan);
+
+            return redirect()
+                ->route('pengajuan.index')
+                ->with('success', 'Pengajuan berhasil dibatalkan.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
         }
+    }
 
-        $pengajuanSurat->delete();
+    /**
+     * Menghapus riwayat pengajuan.
+     */
+    public function destroyRiwayat(PengajuanSurat $pengajuan)
+    {
+        $this->authorize('delete', $pengajuan);
 
-        return redirect()->route('pengajuan.index')->with('success', 'Pengajuan berhasil dibatalkan.');
+        try {
+            $this->pengajuanService->deleteRiwayat($pengajuan);
+
+            return redirect()
+                ->route('pengajuan.index')
+                ->with('success', 'Riwayat pengajuan berhasil dihapus.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
 }
