@@ -11,6 +11,8 @@
             default: () => ({
                 nama_desa: 'SURELA Desa',
                 alamat: 'Alamat lengkap desa Anda.',
+                email: 'email@desa.id',
+                telepon: '081234567890',
                 logo: null,
             }),
         },
@@ -30,79 +32,91 @@
 
     const features = [
         {
-            title: 'Pengajuan Surat Online',
+            title: 'Surat Online',
             description:
-                'Ajukan surat domisili, usaha, dan lainnya tanpa perlu datang ke kantor desa.',
+                'Buat surat keterangan domisili, usaha, dan surat penting lainnya dari rumah.',
             icon: 'document-text',
-            color: 'text-blue-400',
+            bgColor: 'bg-blue-50',
+            iconColor: 'text-blue-600',
+            borderColor: 'border-blue-200',
         },
         {
-            title: 'Pengaduan Masyarakat',
+            title: 'Laporan Warga',
             description:
-                'Sampaikan aspirasi atau keluhan Anda langsung kepada perangkat desa secara transparan.',
+                'Sampaikan keluhan atau saran untuk kemajuan desa dengan mudah.',
             icon: 'chat-bubble-left-right',
-            color: 'text-green-400',
+            bgColor: 'bg-green-50',
+            iconColor: 'text-green-600',
+            borderColor: 'border-green-200',
         },
         {
-            title: 'Pendaftaran UMK',
+            title: 'Daftar UMKM',
             description:
-                'Daftarkan usaha mikro & kecil Anda untuk mendapatkan dukungan dari pemerintah.',
+                'Daftarkan usaha kecil Anda untuk mendapat bantuan pemerintah.',
             icon: 'building-storefront',
-            color: 'text-yellow-400',
+            bgColor: 'bg-orange-50',
+            iconColor: 'text-orange-600',
+            borderColor: 'border-orange-200',
         },
         {
             title: 'Informasi Desa',
             description:
-                'Dapatkan pengumuman penting, berita, dan agenda kegiatan desa secara real-time.',
+                'Dapatkan berita terbaru dan pengumuman penting dari desa.',
             icon: 'megaphone',
-            color: 'text-pink-400',
+            bgColor: 'bg-purple-50',
+            iconColor: 'text-purple-600',
+            borderColor: 'border-purple-200',
         },
         {
-            title: 'Transparansi Real-time',
+            title: 'Lacak Status',
             description:
-                'Lacak status pengajuan dan proses layanan Anda secara langsung melalui sistem.',
+                'Pantau perkembangan pengajuan surat dan layanan Anda secara langsung.',
             icon: 'chart-pie',
-            color: 'text-purple-400',
+            bgColor: 'bg-indigo-50',
+            iconColor: 'text-indigo-600',
+            borderColor: 'border-indigo-200',
         },
         {
-            title: 'Profil Lengkap Desa',
+            title: 'Profil Desa',
             description:
-                'Akses informasi mengenai sejarah, visi misi, dan struktur organisasi desa.',
+                'Pelajari sejarah, visi misi, dan struktur pemerintahan desa.',
             icon: 'building-library',
-            color: 'text-indigo-400',
+            bgColor: 'bg-teal-50',
+            iconColor: 'text-teal-600',
+            borderColor: 'border-teal-200',
         },
     ];
 </script>
 
 <template>
-    <Head title="Sistem Pelayanan Desa Digital" />
+    <Head title="Pelayanan Desa Digital" />
 
-    <div class="font-sans antialiased text-gray-200">
-        <!-- Floating Navigation -->
+    <div class="font-sans antialiased bg-white text-gray-900">
+        <!-- Navigation -->
         <nav
-            :class="`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-gray-900/95 backdrop-blur-lg shadow-2xl' : 'bg-transparent'}`"
+            :class="`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur-sm shadow-lg border-b border-gray-200' : 'bg-white/90 backdrop-blur-sm'}`"
         >
             <div class="container mx-auto px-6 py-4 flex justify-between items-center">
                 <div class="flex items-center space-x-3">
                     <img
                         :src="logoUrl"
                         :alt="profilDesa.nama_desa"
-                        class="w-10 h-10 rounded-full ring-2 ring-blue-400/50"
+                        class="w-10 h-10 rounded-full border-2 border-gray-200"
                     />
-                    <span class="font-bold text-xl text-white">{{ profilDesa.nama_desa }}</span>
+                    <span class="font-bold text-xl text-gray-900">{{ profilDesa.nama_desa }}</span>
                 </div>
                 <div class="flex items-center space-x-4">
                     <Link
                         v-if="canLogin"
                         :href="route('login')"
-                        class="text-gray-300 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-white/10"
+                        class="text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 rounded-lg hover:bg-gray-100"
                     >
                         Masuk
                     </Link>
                     <Link
                         v-if="canRegister"
                         :href="route('register')"
-                        class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-full hover:scale-105 transform transition-all duration-300 shadow-lg"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
                     >
                         Daftar
                     </Link>
@@ -110,271 +124,186 @@
             </div>
         </nav>
 
-        <!-- Enhanced Hero Section -->
-        <header
-            class="relative w-full min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 overflow-hidden flex items-center justify-center text-center"
-        >
-            <!-- Animated background patterns -->
-            <div class="absolute inset-0 opacity-10">
-                <div
-                    class="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse"
-                ></div>
-                <div
-                    class="absolute top-3/4 right-1/4 w-64 h-64 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"
-                ></div>
-                <div
-                    class="absolute bottom-1/4 left-1/2 w-64 h-64 bg-pink-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-4000"
-                ></div>
+        <!-- Hero Section with Background Image -->
+        <header class="relative pt-20 pb-16 overflow-hidden">
+            <!-- Background Image dengan gradient overlay -->
+            <div class="absolute inset-0 z-0">
+                <img
+                    src="/images/village-bg.jpg"
+                    alt="Pemandangan Desa"
+                    class="w-full h-full object-cover"
+                />
+                <!-- Overlay dengan gradient untuk fade effect -->
+                <div class="absolute inset-0 bg-gradient-to-b from-white/40 via-white/60 to-white"></div>
             </div>
 
-            <!-- Background image with overlay -->
-            <img
-                src="/images/village-bg.jpg"
-                alt="Desa"
-                class="absolute inset-0 w-full h-full object-cover opacity-20"
-            />
-            <div
-                class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"
-            ></div>
-
-            <!-- Hero content -->
-            <div class="relative z-10 px-6 max-w-5xl mx-auto">
-                <!-- Floating badge -->
-                <div
-                    class="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-2 mb-8 border border-white/20"
-                >
-                    <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                    <span class="text-sm text-white/90">Sistem Aktif 24/7</span>
+            <div class="relative z-10 container mx-auto px-6 text-center py-20">
+                <!-- Status Badge -->
+                <div class="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full mb-8 border border-green-200">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="text-sm font-medium">Layanan Aktif</span>
                 </div>
 
-                <h1
-                    class="text-6xl md:text-8xl font-extrabold mb-8 bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent leading-tight"
-                >
+                <!-- Main Title -->
+                <h1 class="text-4xl md:text-6xl font-bold mb-6 text-gray-900 leading-tight hero-text-shadow">
                     Pelayanan Desa
-                    <span
-                        class="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"
-                        >Era Digital</span
-                    >
+                    <span class="text-blue-600 block">Lebih Mudah</span>
                 </h1>
 
-                <p
-                    class="text-xl md:text-2xl max-w-4xl mx-auto mb-12 text-gray-300 leading-relaxed"
-                >
-                    Transformasi digital untuk layanan administrasi yang lebih
-                    <span class="text-blue-400 font-semibold">efisien</span>,
-                    <span class="text-green-400 font-semibold">transparan</span>, dan
-                    <span class="text-purple-400 font-semibold">mudah diakses</span>
+                <p class="text-xl md:text-2xl text-gray-700 max-w-3xl mx-auto mb-12 leading-relaxed hero-text-shadow">
+                    Urus semua keperluan administrasi desa dari rumah. 
+                    <span class="font-semibold text-gray-800">Praktis, cepat, dan transparan.</span>
                 </p>
 
-                <!-- Enhanced CTA buttons -->
+                <!-- CTA Buttons -->
                 <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
                     <Link
                         :href="route('register')"
-                        class="group relative inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold px-8 py-4 rounded-2xl shadow-2xl hover:shadow-blue-500/25 hover:scale-105 transform transition-all duration-300 overflow-hidden"
+                        class="inline-flex items-center gap-2 bg-blue-600 text-white font-semibold px-8 py-4 rounded-lg shadow-lg hover:bg-blue-700 hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                     >
-                        <span
-                            class="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        ></span>
-                        <svg class="w-5 h-5 relative z-10" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                                fill-rule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414-1.414L9 5.586 7.707 4.293a1 1 0 00-1.414 1.414L8.586 8l-2.293 2.293a1 1 0 101.414 1.414L9 10.414l2.293 2.293a1 1 0 001.414-1.414L10.414 9l2.293-2.293z"
-                                clip-rule="evenodd"
-                            ></path>
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
                         </svg>
-                        <span class="relative z-10">Mulai Sekarang</span>
+                        Mulai Sekarang
                     </Link>
 
-                    <button
-                        class="group inline-flex items-center gap-3 bg-white/10 backdrop-blur-md text-white font-semibold px-8 py-4 rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300"
-                    >
-                        <svg
-                            class="w-5 h-5 group-hover:animate-pulse"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                        >
-                            <path
-                                fill-rule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                                clip-rule="evenodd"
-                            ></path>
+                    <button class="inline-flex items-center gap-2 bg-white text-gray-700 font-semibold px-8 py-4 rounded-lg border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
                         </svg>
                         Lihat Demo
                     </button>
                 </div>
-            </div>
 
-            <!-- Scroll indicator -->
-            <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-                <div class="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
-                    <div class="w-1 h-3 bg-white/60 rounded-full mt-2 animate-pulse"></div>
+                <!-- Trust Indicators -->
+                <div class="flex flex-wrap justify-center items-center gap-8 mt-16 pt-8 border-t border-white/30">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600">24 Jam</div>
+                        <div class="text-gray-600 text-sm">Layanan Online</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600">Gratis</div>
+                        <div class="text-gray-600 text-sm">Untuk Warga</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-orange-600">5 Menit</div>
+                        <div class="text-gray-600 text-sm">Proses Cepat</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-purple-600">Aman</div>
+                        <div class="text-gray-600 text-sm">Data Terlindungi</div>
+                    </div>
                 </div>
             </div>
         </header>
 
-        <!-- Enhanced Features Section -->
-        <section
-            class="py-20 sm:py-32 px-6 bg-gradient-to-b from-gray-900 via-slate-900 to-gray-900 relative overflow-hidden"
-        >
-            <!-- Background decorations -->
-            <div class="absolute inset-0 opacity-5">
-                <div
-                    class="absolute top-0 left-0 w-72 h-72 bg-blue-500 rounded-full filter blur-3xl"
-                ></div>
-                <div
-                    class="absolute bottom-0 right-0 w-72 h-72 bg-purple-500 rounded-full filter blur-3xl"
-                ></div>
-            </div>
-
-            <div class="container mx-auto relative z-10">
-                <!-- Section header -->
-                <div class="text-center max-w-4xl mx-auto mb-20">
-                    <div
-                        class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 backdrop-blur-md rounded-full px-6 py-3 mb-6 border border-blue-500/20"
-                    >
-                        <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+        <!-- Features Section -->
+        <section class="py-20 bg-gradient-to-b from-white to-gray-50">
+            <div class="container mx-auto px-6">
+                <!-- Section Header -->
+                <div class="text-center max-w-3xl mx-auto mb-16">
+                    <div class="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full mb-6 border border-blue-200">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        <span class="text-blue-300 font-medium">Fitur Unggulan</span>
+                        <span class="text-sm font-medium">Layanan Tersedia</span>
                     </div>
 
-                    <h2
-                        class="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent"
-                    >
-                        Semua Dalam Satu
-                        <span
-                            class="block text-transparent bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text"
-                            >Platform</span
-                        >
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                        Semua Kebutuhan Desa
+                        <span class="text-blue-600">Dalam Satu Tempat</span>
                     </h2>
 
-                    <p class="text-xl text-gray-400 leading-relaxed">
-                        Solusi komprehensif untuk menyederhanakan seluruh kebutuhan administrasi
-                        desa Anda
+                    <p class="text-lg text-gray-600">
+                        Nikmati kemudahan mengurus berbagai keperluan administrasi desa tanpa harus datang ke kantor
                     </p>
                 </div>
 
-                <!-- Features grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                    <FeatureCard
+                <!-- Features Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div
                         v-for="(feature, index) in features"
                         :key="feature.title"
-                        :title="feature.title"
-                        :description="feature.description"
-                        :icon="feature.icon"
-                        :color="feature.color"
-                        :class="`hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-3 transition-all duration-500 animation-delay-${index * 100}`"
+                        :class="`${feature.bgColor} ${feature.borderColor} border-2 rounded-xl p-6 hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 cursor-pointer`"
                         :style="`animation-delay: ${index * 0.1}s`"
-                    />
-                </div>
+                        class="animate-fade-in-up"
+                    >
+                        <!-- Icon -->
+                        <div :class="`${feature.iconColor} mb-4`">
+                            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24" v-if="feature.icon === 'document-text'">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v12h8V6.828L12.172 5H6v-.172L6 4zm2 8a1 1 0 100-2 1 1 0 000 2zm4-1a1 1 0 11-2 0 1 1 0 012 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24" v-else-if="feature.icon === 'chat-bubble-left-right'">
+                                <path fill-rule="evenodd" d="M4.804 21.644A6.707 6.707 0 006 21.75a6.721 6.721 0 003.583-1.029c.774.182 1.584.279 2.417.279 5.322 0 9.75-3.97 9.75-9 0-5.03-4.428-9-9.75-9s-9.75 3.97-9.75 9c0 2.409 1.025 4.587 2.674 6.192.232.226.277.428.254.543a3.73 3.73 0 01-.814 1.686.75.75 0 00.44 1.173z" clip-rule="evenodd"></path>
+                            </svg>
+                            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24" v-else-if="feature.icon === 'building-storefront'">
+                                <path d="M2.25 2.25a.75.75 0 000 1.5H3v10.5a3 3 0 003 3h1.21l-1.172 3.513a.75.75 0 001.424.474l.329-.987h8.418l.33.987a.75.75 0 001.422-.474L15.79 17.25H18a3 3 0 003-3V3.75h.75a.75.75 0 000-1.5H2.25zm6.04 16.5l.5-1.5h6.42l.5 1.5H8.29zm7.46-12a.75.75 0 00-1.5 0v6a.75.75 0 001.5 0v-6zm-3 2.25a.75.75 0 00-1.5 0v3.75a.75.75 0 001.5 0V9zm-3 2.25a.75.75 0 00-1.5 0v1.5a.75.75 0 001.5 0v-1.5z"></path>
+                            </svg>
+                            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24" v-else-if="feature.icon === 'megaphone'">
+                                <path fill-rule="evenodd" d="M18.97 3.659a2.25 2.25 0 00-3.182.22l-1.94 2.28c-.783.923-1.923 1.52-3.153 1.52H8.25a2.25 2.25 0 00-2.25 2.25v3c0 1.242 1.008 2.25 2.25 2.25h2.445c1.23 0 2.37.597 3.153 1.52l1.94 2.28c.916 1.077 2.7.6 2.813-.75L21 12.25v-6.5l-2.03-2.091z" clip-rule="evenodd"></path>
+                            </svg>
+                            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24" v-else-if="feature.icon === 'chart-pie'">
+                                <path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75zM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 01-1.875-1.875V8.625zM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 013 19.875v-6.75z"></path>
+                            </svg>
+                            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24" v-else>
+                                <path d="M11.584 2.376a.75.75 0 01.832 0l9 6a.75.75 0 11-.832 1.248L12 3.901 3.416 9.624a.75.75 0 01-.832-1.248l9-6z"></path>
+                                <path fill-rule="evenodd" d="M20.25 10.332v9.918H21a.75.75 0 010 1.5H3a.75.75 0 010-1.5h.75v-9.918a.75.75 0 01.634-.74L12 8.251l7.616 1.343a.75.75 0 01.634.74zm-7.5 2.418a.75.75 0 00-1.5 0v4.5a.75.75 0 001.5 0v-4.5zm3-2.25a.75.75 0 00-1.5 0v6.75a.75.75 0 001.5 0V10.5zm3 0a.75.75 0 00-1.5 0v6.75a.75.75 0 001.5 0V10.5z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
 
-                <!-- Stats section -->
-                <div
-                    class="grid grid-cols-2 md:grid-cols-4 gap-8 mt-20 pt-20 border-t border-gray-800"
-                >
-                    <div class="text-center">
-                        <div class="text-4xl font-bold text-blue-400 mb-2">24/7</div>
-                        <div class="text-gray-400">Layanan Aktif</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-4xl font-bold text-green-400 mb-2">100%</div>
-                        <div class="text-gray-400">Digital</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-4xl font-bold text-purple-400 mb-2">5 Menit</div>
-                        <div class="text-gray-400">Proses Cepat</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-4xl font-bold text-pink-400 mb-2">Gratis</div>
-                        <div class="text-gray-400">Untuk Semua</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ feature.title }}</h3>
+                        <p class="text-gray-600 leading-relaxed">{{ feature.description }}</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Enhanced Call to Action -->
-        <section
-            class="py-20 px-6 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-hidden"
-        >
-            <!-- Animated background -->
-            <div class="absolute inset-0 opacity-20">
-                <div
-                    class="absolute top-1/3 left-1/4 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-2xl animate-pulse"
-                ></div>
-                <div
-                    class="absolute bottom-1/3 right-1/4 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-2xl animate-pulse animation-delay-2000"
-                ></div>
-            </div>
-
-            <div class="container mx-auto max-w-5xl text-center relative z-10">
-                <div
-                    class="bg-white/5 backdrop-blur-xl p-12 md:p-16 rounded-3xl border border-white/10 shadow-2xl"
-                >
+        <!-- Call to Action -->
+        <section class="py-20 bg-gradient-to-b from-gray-50 to-white">
+            <div class="container mx-auto px-6 text-center">
+                <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl border border-gray-200 p-12">
                     <!-- Icon -->
-                    <div
-                        class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl mb-8"
-                    >
-                        <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                                fill-rule="evenodd"
-                                d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
-                                clip-rule="evenodd"
-                            ></path>
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-xl mb-6">
+                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"></path>
                         </svg>
                     </div>
 
-                    <h2
-                        class="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent"
-                    >
-                        Siap untuk Transformasi Digital?
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                        Siap Merasakan Kemudahan?
                     </h2>
 
-                    <p class="text-xl text-gray-300 mb-10 max-w-3xl mx-auto leading-relaxed">
-                        Bergabunglah bersama ribuan warga yang telah merasakan kemudahan layanan
-                        desa digital. Mulai perjalanan Anda menuju masa depan yang lebih efisien.
+                    <p class="text-lg text-gray-600 mb-8 leading-relaxed">
+                        Bergabung dengan ribuan warga yang sudah merasakan kemudahan layanan desa digital. 
+                        Daftar sekarang dan mulai urus keperluan Anda dari rumah.
                     </p>
 
-                    <!-- Enhanced CTA -->
+                    <!-- CTA -->
                     <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
                         <Link
                             v-if="canRegister"
                             :href="route('register')"
-                            class="group relative inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold px-10 py-4 rounded-2xl shadow-2xl hover:shadow-blue-500/30 hover:scale-105 transform transition-all duration-300 overflow-hidden"
+                            class="inline-flex items-center gap-2 bg-blue-600 text-white font-bold px-8 py-4 rounded-lg shadow-lg hover:bg-blue-700 hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                         >
-                            <span
-                                class="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                            ></span>
-                            <svg
-                                class="w-6 h-6 relative z-10"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                            >
-                                <path
-                                    fill-rule="evenodd"
-                                    d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                                    clip-rule="evenodd"
-                                ></path>
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
                             </svg>
-                            <span class="relative z-10">Buat Akun Gratis</span>
+                            Daftar Gratis Sekarang
                         </Link>
 
-                        <div class="flex items-center gap-2 text-sm text-gray-400">
+                        <div class="flex items-center gap-2 text-sm text-gray-500">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    fill-rule="evenodd"
-                                    d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                                    clip-rule="evenodd"
-                                ></path>
+                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
                             </svg>
-                            Data Anda Aman & Terlindungi
+                            Data Anda Aman
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Enhanced Footer -->
-        <footer class="bg-gray-900 border-t border-gray-800 py-12">
+        <!-- Footer -->
+        <footer class="bg-gray-900 text-white py-12">
             <div class="container mx-auto px-6">
                 <div class="grid md:grid-cols-3 gap-8 mb-8">
                     <!-- Logo & Info -->
@@ -383,97 +312,52 @@
                             <img
                                 :src="logoUrl"
                                 :alt="profilDesa.nama_desa"
-                                class="w-12 h-12 rounded-full ring-2 ring-blue-400/30"
+                                class="w-10 h-10 rounded-full border-2 border-gray-600"
                             />
-                            <span class="font-bold text-xl text-white">{{
-                                profilDesa.nama_desa
-                            }}</span>
+                            <span class="font-bold text-xl">{{ profilDesa.nama_desa }}</span>
                         </div>
                         <p class="text-gray-400 mb-4">{{ profilDesa.alamat }}</p>
-                        <div class="flex space-x-4">
-                            <a
-                                href="#"
-                                class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-gray-400 hover:bg-blue-600 hover:text-white transition-all duration-300"
-                            >
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                        d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"
-                                    />
-                                </svg>
-                            </a>
-                            <a
-                                href="#"
-                                class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-gray-400 hover:bg-blue-600 hover:text-white transition-all duration-300"
-                            >
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                        d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z"
-                                    />
-                                </svg>
-                            </a>
-                        </div>
                     </div>
 
                     <!-- Quick Links -->
                     <div>
-                        <h3 class="font-semibold text-white mb-4">Layanan</h3>
+                        <h3 class="font-semibold mb-4">Layanan</h3>
                         <ul class="space-y-2 text-gray-400">
-                            <li>
-                                <a href="#" class="hover:text-white transition-colors"
-                                    >Pengajuan Surat</a
-                                >
-                            </li>
-                            <li>
-                                <a href="#" class="hover:text-white transition-colors">Pengaduan</a>
-                            </li>
-                            <li>
-                                <a href="#" class="hover:text-white transition-colors"
-                                    >Informasi Desa</a
-                                >
-                            </li>
-                            <li>
-                                <a href="#" class="hover:text-white transition-colors">Bantuan</a>
-                            </li>
+                            <li><a href="#" class="hover:text-white transition-colors">Pengajuan Surat</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">Pengaduan</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">Informasi Desa</a></li>
+                            <li><a href="#" class="hover:text-white transition-colors">Bantuan</a></li>
                         </ul>
                     </div>
 
                     <!-- Contact -->
                     <div>
-                        <h3 class="font-semibold text-white mb-4">Kontak</h3>
+                        <h3 class="font-semibold mb-4">Kontak</h3>
                         <ul class="space-y-2 text-gray-400">
-                            <li class="flex items-center gap-2">
+                            <li class="flex items-center gap-2" v-if="profilDesa.email">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path
-                                        d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"
-                                    ></path>
-                                    <path
-                                        d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"
-                                    ></path>
+                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
                                 </svg>
-                                info@desa.go.id
+                                {{ profilDesa.email }}
                             </li>
-                            <li class="flex items-center gap-2">
+                            <li class="flex items-center gap-2" v-if="profilDesa.telepon">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path
-                                        d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"
-                                    ></path>
+                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
                                 </svg>
-                                (021) 1234-5678
+                                {{ profilDesa.telepon }}
                             </li>
                         </ul>
                     </div>
                 </div>
 
                 <!-- Copyright -->
-                <div
-                    class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center"
-                >
+                <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
                     <p class="text-gray-400">
-                        &copy; {{ new Date().getFullYear() }} Pemerintah {{ profilDesa.nama_desa }}.
-                        All rights reserved.
+                        &copy; {{ new Date().getFullYear() }} {{ profilDesa.nama_desa }}. Hak cipta dilindungi.
                     </p>
                     <p class="text-gray-500 text-sm mt-2 md:mt-0">
-                        Ditenagai oleh Teknologi Modern
+                        Sistem Digital Desa
                     </p>
                 </div>
             </div>
@@ -482,95 +366,44 @@
 </template>
 
 <style scoped>
-    @keyframes float {
-        0%,
-        100% {
-            transform: translateY(0px);
+    @keyframes fade-in-up {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
         }
-        50% {
-            transform: translateY(-10px);
-        }
-    }
-
-    .animation-delay-100 {
-        animation-delay: 0.1s;
-    }
-    .animation-delay-200 {
-        animation-delay: 0.2s;
-    }
-    .animation-delay-300 {
-        animation-delay: 0.3s;
-    }
-    .animation-delay-400 {
-        animation-delay: 0.4s;
-    }
-    .animation-delay-500 {
-        animation-delay: 0.5s;
-    }
-    .animation-delay-600 {
-        animation-delay: 0.6s;
-    }
-    .animation-delay-2000 {
-        animation-delay: 2s;
-    }
-    .animation-delay-4000 {
-        animation-delay: 4s;
-    }
-
-    /* Custom gradient animations */
-    @keyframes gradient-x {
-        0%,
-        100% {
-            transform: translateX(0%);
-        }
-        50% {
-            transform: translateX(100%);
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
     }
 
-    @keyframes pulse-glow {
-        0%,
-        100% {
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-        }
-        50% {
-            box-shadow: 0 0 40px rgba(59, 130, 246, 0.6);
-        }
+    .animate-fade-in-up {
+        animation: fade-in-up 0.6s ease-out forwards;
+        opacity: 0;
     }
 
-    .animate-gradient-x {
-        animation: gradient-x 15s ease infinite;
-    }
-
-    .animate-pulse-glow {
-        animation: pulse-glow 3s ease-in-out infinite;
-    }
-
-    /* Glassmorphism effect */
-    .backdrop-blur-xl {
-        backdrop-filter: blur(20px);
-    }
-
-    /* Smooth scroll behavior */
+    /* Smooth scroll */
     html {
         scroll-behavior: smooth;
     }
 
-    /* Custom scrollbar */
-    ::-webkit-scrollbar {
-        width: 6px;
+    /* Custom hover effects */
+    .hover\:scale-105:hover {
+        transform: scale(1.05);
     }
 
-    ::-webkit-scrollbar-track {
-        background: #1f2937;
+    .hover\:-translate-y-1:hover {
+        transform: translateY(-4px);
     }
 
-    ::-webkit-scrollbar-thumb {
-        background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
-        border-radius: 3px;
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
     }
-
-    ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(to bottom, #2563eb, #7c3aed);
-    }
+    .hero-text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Dark shadow for contrast */
+}
 </style>

@@ -3,90 +3,107 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\JenisSurat;
 use App\Models\PengajuanSurat;
-use Carbon\Carbon;
+use App\Models\PerangkatDesa;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
-/**
- * Controller untuk menangani logika dan data untuk halaman dashboard admin.
- */
 class DashboardController extends Controller
 {
     /**
-     * Menampilkan halaman dashboard admin dengan data statistik.
-     *
-     * @return \Inertia\Response
+     * Menampilkan halaman dashboard admin dengan data statistik dan aktivitas terbaru.
      */
     public function index()
     {
-        // 1. STATISTIK KARTU (JUMLAH PENGAJUAN BERDASARKAN STATUS)
-        // Mengambil semua status dalam satu query untuk efisiensi
-        $statusCounts = PengajuanSurat::query()
-            ->select('status', DB::raw('count(*) as total'))
-            ->groupBy('status')
-            ->pluck('total', 'status');
-
-        $stats = [
-            'pengajuanPending' => $statusCounts->get('pending', 0),
-            'pengajuanDiproses' => $statusCounts->get('diproses', 0),
-            'pengajuanSelesai' => $statusCounts->get('selesai', 0),
-            'pengajuanDitolak' => $statusCounts->get('ditolak', 0),
+        // Mengambil data untuk kartu statistik
+        $statistics = [
+            'totalUsers' => User::where('role', 'warga')->count(),
+            'pendingSubmissions' => PengajuanSurat::where('status', 'pending')->count(), // Disesuaikan dengan status di Vue
+            'processedSubmissions' => PengajuanSurat::whereIn('status', ['selesai', 'ditolak'])->count(), // Disesuaikan
+            'letterTypes' => JenisSurat::count(),
+            'totalPerangkatDesa' => PerangkatDesa::count(),
         ];
 
-
-        // 2. STATISTIK JENIS SURAT (UNTUK PIE CHART / BAR CHART)
-        // Mengambil 5 jenis surat yang paling banyak diajukan
-        $statistikJenisSurat = PengajuanSurat::query()
-            ->join('jenis_surats', 'pengajuan_surats.jenis_surat_id', '=', 'jenis_surats.id')
-            ->select('jenis_surats.nama_surat', DB::raw('count(*) as total'))
-            ->groupBy('jenis_surats.nama_surat')
-            ->orderBy('total', 'desc')
-            ->limit(5)
+        // Mengambil 10 aktivitas pengajuan surat terbaru
+        $recentActivities = PengajuanSurat::with(['user:id,name', 'jenisSurat:id,nama_surat'])
+            ->latest()
+            ->take(10)
             ->get();
 
-
-        // 3. TREN PENGAJUAN SURAT 30 HARI TERAKHIR (UNTUK LINE CHART)
-        $pengajuanPerHari = PengajuanSurat::query()
-            ->select(DB::raw('DATE(created_at) as tanggal'), DB::raw('count(*) as jumlah'))
-            ->where('created_at', '>=', now()->subDays(30))
-            ->groupBy('tanggal')
-            ->orderBy('tanggal', 'asc')
-            ->get()
-            ->keyBy('tanggal'); // Membuat key dari collection berdasarkan tanggal
-
-        // Menyiapkan data untuk chart, memastikan semua 30 hari ada dalam label
-        $tanggalRange = collect(range(0, 29))->map(function ($i) {
-            return now()->subDays($i)->format('Y-m-d');
-        })->reverse()->values();
-
-        $trenLabels = $tanggalRange->map(function ($tanggal) {
-            return Carbon::parse($tanggal)->translatedFormat('d M'); // Format: 22 Agu
-        });
-
-        $trenData = $tanggalRange->map(function ($tanggal) use ($pengajuanPerHari) {
-            return $pengajuanPerHari->get($tanggal)->jumlah ?? 0;
-        });
-
-
-        // 4. DAFTAR 5 PENGAJUAN TERBARU (UNTUK TABEL)
-        // Menggunakan eager loading (with) untuk menghindari N+1 query problem
-        $pengajuanTerbaru = PengajuanSurat::with(['user:id,name', 'jenisSurat:id,nama_surat'])
-            ->latest() // Mengurutkan dari yang paling baru
-            ->limit(5)
-            ->get();
-
-            
-        // 5. MENGIRIM SEMUA DATA KE INERTIA VIEW
-        return Inertia::render('Admin/Dashboard', [
-            'stats' => $stats,
-            'statistikJenisSurat' => $statistikJenisSurat,
-            'trenPengajuan' => [
-                'labels' => $trenLabels,
-                'data' => $trenData,
+        // Data khusus untuk chart
+        $chartData = [
+            'statusDistribution' => [
+                'pending' => PengajuanSurat::where('status', 'pending')->count(),
+                'diproses' => PengajuanSurat::where('status', 'diproses')->count(),
+                'selesai' => PengajuanSurat::where('status', 'selesai')->count(),
+                'ditolak' => PengajuanSurat::where('status', 'ditolak')->count(),
             ],
-            'pengajuanTerbaru' => $pengajuanTerbaru,
+            'dailyTrend' => $this->getDailySubmissions(), // Menggunakan data harian
+            'letterTypeDistribution' => $this->getLetterTypeDistribution()
+        ];
+
+        // Me-render komponen Vue dengan data yang sudah diambil
+        return Inertia::render('Admin/Dashboard', [
+            'statistics' => $statistics,
+            'recentActivities' => $recentActivities,
+            'chartData' => $chartData
+        ]);
+    }
+
+    /**
+     * Mendapatkan data pengajuan per hari selama 30 hari terakhir untuk line chart.
+     */
+    private function getDailySubmissions()
+    {
+        $data = PengajuanSurat::select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('COUNT(*) as total')
+            )
+            ->where('created_at', '>=', now()->subDays(30))
+            ->groupBy('date')
+            ->orderBy('date', 'asc')
+            ->get();
+        
+        // Memformat data agar siap digunakan oleh ApexCharts
+        return [
+            'dates' => $data->pluck('date'),
+            'totals' => $data->pluck('total'),
+        ];
+    }
+
+    /**
+     * Mendapatkan distribusi jenis surat
+     */
+    private function getLetterTypeDistribution()
+    {
+        return PengajuanSurat::join('jenis_surats', 'pengajuan_surats.jenis_surat_id', '=', 'jenis_surats.id')
+            ->selectRaw('jenis_surats.nama_surat, COUNT(*) as total')
+            ->groupBy('jenis_surats.id', 'jenis_surats.nama_surat')
+            ->orderBy('total', 'desc')
+            ->limit(5) // Top 5 jenis surat
+            ->get()
+            ->mapWithKeys(function ($item) {
+                return [$item->nama_surat => $item->total];
+            });
+    }
+
+    /**
+     * API endpoint khusus untuk data chart
+     */
+    public function getChartData()
+    {
+        return response()->json([
+            'statusDistribution' => [
+                 'pending' => PengajuanSurat::where('status', 'pending')->count(),
+                 'diproses' => PengajuanSurat::where('status', 'diproses')->count(),
+                 'selesai' => PengajuanSurat::where('status', 'selesai')->count(),
+                 'ditolak' => PengajuanSurat::where('status', 'ditolak')->count(),
+            ],
+            'dailyTrend' => $this->getDailySubmissions(), // Menambahkan data harian ke API
+            'letterTypeDistribution' => $this->getLetterTypeDistribution()
         ]);
     }
 }
