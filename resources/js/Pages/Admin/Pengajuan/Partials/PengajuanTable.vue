@@ -48,7 +48,7 @@ const { getStatusClass, formatDate } = usePengajuanUtils();
                         <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Update Terakhir
                         </th>
-                        <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th scope="col" class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                             {{ isRiwayat ? 'Aksi' : 'Proses Surat' }}
                         </th>
                     </tr>
@@ -72,24 +72,32 @@ const { getStatusClass, formatDate } = usePengajuanUtils();
 
                     <!-- Data Rows -->
                     <tr v-else v-for="item in pengajuan" :key="item.id" class="hover:bg-gray-50 transition-colors duration-150">
-                        <!-- Pemohon -->
-                        <td class="px-4 py-4">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3">
-                                    <span class="text-xs font-medium text-gray-700">
-                                        {{ item.user?.name?.charAt(0)?.toUpperCase() || '?' }}
-                                    </span>
-                                </div>
-                                <div>
-                                    <div class="text-sm font-medium text-gray-900">
-                                        {{ item.user?.name || 'Nama tidak tersedia' }}
-                                    </div>
-                                    <div class="text-xs text-gray-500">
-                                        {{ item.user?.nik || 'NIK tidak tersedia' }}
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
+                       <!-- Pemohon -->
+<td class="px-4 py-4">
+    <div class="flex items-center">
+        <!-- ✅ Foto profil atau inisial -->
+        <div class="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-gray-300 flex items-center justify-center mr-3">
+            <img
+                v-if="item.user?.profile_photo_url"
+                :src="item.user.profile_photo_url"
+                alt="Foto Pemohon"
+                class="w-full h-full object-cover"
+            />
+            <span v-else class="text-xs font-medium text-gray-700">
+                {{ item.user?.name?.charAt(0)?.toUpperCase() || '?' }}
+            </span>
+        </div>
+        <div>
+            <div class="text-sm font-medium text-gray-900">
+                {{ item.user?.name || 'Nama tidak tersedia' }}
+            </div>
+            <div class="text-xs text-gray-500">
+                {{ item.user?.nik || 'NIK tidak tersedia' }}
+            </div>
+        </div>
+    </div>
+</td>
+
 
                         <!-- Jenis Surat -->
                         <td class="px-4 py-4">
@@ -121,7 +129,7 @@ const { getStatusClass, formatDate } = usePengajuanUtils();
                         </td>
 
                         <!-- Proses Surat / Aksi -->
-                        <td class="px-4 py-4 text-right dropdown-column">
+                        <td class="px-4 py-4 text-right">
                             <!-- Riwayat Actions -->
                             <div v-if="isRiwayat" class="flex items-center justify-end space-x-3">
                                 <!-- Detail Button -->
@@ -173,17 +181,5 @@ const { getStatusClass, formatDate } = usePengajuanUtils();
 <style scoped>
 .table-container {
     overflow-x: auto;
-    position: relative;
-}
-
-/* Ensure dropdown column doesn't get clipped */
-.dropdown-column {
-    position: static;
-    overflow: visible;
-}
-
-/* Alternative approach - make the last column wider for dropdown */
-.table-container td:last-child {
-    min-width: 200px;
 }
 </style>

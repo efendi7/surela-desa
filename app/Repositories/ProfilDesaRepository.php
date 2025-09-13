@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Repositories;
 
 use App\Repositories\Interfaces\ProfilDesaRepositoryInterface;
@@ -20,20 +21,5 @@ class ProfilDesaRepository implements ProfilDesaRepositoryInterface
     {
         $profilDesa->update($data);
         return $profilDesa->fresh();
-    }
-
-    public function getDefaultStrukturOrganisasi(): array
-    {
-        return [
-            ['jabatan' => 'Kepala Desa', 'nama' => ''],
-            ['jabatan' => 'Badan Permusyawaratan Desa', 'nama' => ''],
-            ['jabatan' => 'Sekretaris Desa', 'nama' => ''],
-            ['jabatan' => 'Kaur Pemerintahan', 'nama' => ''],
-            ['jabatan' => 'Kaur Pembangunan', 'nama' => ''],
-            ['jabatan' => 'Kaur Pemberdayaan Masyarakat', 'nama' => ''],
-            ['jabatan' => 'Kaur Kesejahteraan Rakyat', 'nama' => ''],
-            ['jabatan' => 'Kaur Umum', 'nama' => ''],
-            ['jabatan' => 'Kaur Keuangan', 'nama' => ''],
-        ];
     }
 }

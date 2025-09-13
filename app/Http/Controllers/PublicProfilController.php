@@ -1,50 +1,31 @@
 <?php
 
+// app/Http/Controllers/PublicProfilController.php
 namespace App\Http\Controllers;
 
-use App\Models\ProfilDesa;
+use App\Services\Interfaces\ProfilDesaServiceInterface;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class PublicProfilController extends Controller
 {
+    public function __construct(
+        private ProfilDesaServiceInterface $profilDesaService
+    ) {}
+
     /**
      * Menampilkan halaman profil desa untuk publik.
+     *
+     * @param string $page
+     * @return Response
      */
-    public function show($page)
+    public function show(string $page): Response
     {
-        $profil = ProfilDesa::firstOrFail(); // Gunakan firstOrFail untuk menangani jika profil tidak ada
+        // Mendapatkan konten berdasarkan halaman dari service
+        $data = $this->profilDesaService->getContentByPage($page);
 
-        $view = 'Public/Profil/Index';
-        $pageTitle = '';
-        $content = null; // Diubah agar bisa menampung tipe data berbeda (string/array)
-        $contentType = 'html'; // Tipe konten default
-
-        switch ($page) {
-            case 'sejarah':
-                $pageTitle = 'Sejarah Desa';
-                $content = $profil->sejarah ?? 'Sejarah desa belum diisi.';
-                break;
-            case 'visi-misi':
-                $pageTitle = 'Visi & Misi Desa';
-                $content = "<h2>Visi</h2>" . ($profil->visi ?? '<p>Visi belum diisi.</p>') . "<h2>Misi</h2>" . ($profil->misi ?? '<p>Misi belum diisi.</p>');
-                break;
-            case 'struktur-organisasi':
-                $pageTitle = 'Struktur Organisasi';
-                // PERUBAHAN: Mengirim data array langsung dari model
-                $content = $profil->struktur_organisasi ?? [];
-                // PERUBAHAN: Memberi penanda bahwa tipe kontennya adalah 'struktur'
-                $contentType = 'struktur';
-                break;
-            default:
-                abort(404);
-        }
-
-        return Inertia::render($view, [
-            'pageTitle' => $pageTitle,
-            'content' => $content,
-            // PERUBAHAN: Mengirim contentType ke frontend
-            'contentType' => $contentType,
-        ]);
+        // Render komponen Vue dengan data yang diperlukan
+        return Inertia::render('ProfilDesa/Index', $data);
     }
 }

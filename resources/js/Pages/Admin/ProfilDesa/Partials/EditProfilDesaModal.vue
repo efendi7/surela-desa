@@ -7,6 +7,7 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
+import { Plus, Trash2 } from 'lucide-vue-next';
 
 const props = defineProps({
     show: {
@@ -36,13 +37,12 @@ const form = useForm({
     logo: null,
     sejarah: '',
     visi: '',
-    misi: '',
-    struktur_organisasi: [],
+    misi: [],
 });
 
-// Gunakan watch untuk mengisi form saat modal ditampilkan
 watch(() => props.show, (newVal) => {
     if (newVal) {
+        // Selalu ambil ulang data dari props (hasil query terbaru dari server)
         form.nama_desa = props.profilDesa.nama_desa || '';
         form.nama_kecamatan = props.profilDesa.nama_kecamatan || '';
         form.nama_kabupaten = props.profilDesa.nama_kabupaten || '';
@@ -54,16 +54,22 @@ watch(() => props.show, (newVal) => {
         form.nama_kepala_desa = props.profilDesa.nama_kepala_desa || '';
         form.sejarah = props.profilDesa.sejarah || '';
         form.visi = props.profilDesa.visi || '';
-        form.misi = props.profilDesa.misi || '';
-        form.struktur_organisasi = JSON.parse(JSON.stringify(props.profilDesa.struktur_organisasi || []));
 
-        // Reset file input & preview
+        // Parse misi dari database (selalu refresh)
+        try {
+            const parsedMisi = JSON.parse(props.profilDesa.misi || '[]');
+            form.misi = Array.isArray(parsedMisi) && parsedMisi.length > 0
+                ? parsedMisi
+                : [''];
+        } catch (e) {
+            form.misi = [''];
+        }
+
         logoPreview.value = null;
         form.logo = null;
         form.clearErrors();
     }
 });
-
 
 const handleLogoChange = (event) => {
     const file = event.target.files[0];
@@ -80,6 +86,16 @@ const submitUpdate = () => {
             emit('close');
         },
     });
+};
+
+const tambahMisi = () => {
+    form.misi.push('');
+};
+
+const hapusMisi = (index) => {
+    if (form.misi.length > 1) {
+        form.misi.splice(index, 1);
+    }
 };
 </script>
 
@@ -145,6 +161,10 @@ const submitUpdate = () => {
                             <p class="text-sm font-medium">Pratinjau Logo Baru:</p>
                             <img :src="logoPreview" class="mt-2 h-20 w-20 rounded-full object-cover border" />
                         </div>
+                        <div v-else-if="profilDesa.logo" class="mt-4">
+                            <p class="text-sm font-medium">Logo Saat Ini:</p>
+                            <img :src="`/storage/${profilDesa.logo}`" class="mt-2 h-20 w-20 rounded-full object-cover border" />
+                        </div>
                     </div>
                 </div>
 
@@ -156,29 +176,34 @@ const submitUpdate = () => {
                     </div>
                     <div class="mt-6">
                         <InputLabel for="visi" value="Visi" />
-                        <textarea id="visi" v-model="form.visi" rows="5" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"></textarea>
+                        <textarea id="visi" v-model="form.visi" rows="3" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"></textarea>
                         <InputError :message="form.errors.visi" class="mt-2" />
                     </div>
+                    
                     <div class="mt-6">
-                        <InputLabel for="misi" value="Misi" />
-                        <textarea id="misi" v-model="form.misi" rows="5" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"></textarea>
+                        <InputLabel value="Misi" />
+                        <div v-for="(misi, index) in form.misi" :key="index" class="flex items-center gap-2 mt-2">
+                            <span class="text-gray-500 font-semibold">{{ index + 1 }}.</span>
+                            <TextInput
+                                type="text"
+                                v-model="form.misi[index]"
+                                class="block w-full"
+                                placeholder="Tuliskan poin misi..."
+                            />
+                            <button @click="hapusMisi(index)" type="button" class="p-2 text-red-500 hover:bg-red-100 rounded-full" :disabled="form.misi.length <= 1">
+                                <Trash2 class="w-4 h-4" />
+                            </button>
+                        </div>
+                        <button @click="tambahMisi" type="button" class="mt-3 flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                            <Plus class="w-4 h-4" />
+                            Tambah Poin Misi
+                        </button>
                         <InputError :message="form.errors.misi" class="mt-2" />
                     </div>
                 </div>
-
-                <div class="pt-6 border-t">
-                    <h3 class="text-lg font-semibold mb-4">Struktur Organisasi</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div v-for="(perangkat, index) in form.struktur_organisasi" :key="index">
-                            <InputLabel :for="'jabatan_' + index" :value="perangkat.jabatan" />
-                            <TextInput :id="'jabatan_' + index" v-model="perangkat.nama" type="text" class="mt-1 block w-full" :placeholder="'Nama ' + perangkat.jabatan" />
-                        </div>
-                    </div>
-                    <InputError :message="form.errors.struktur_organisasi" class="mt-2" />
-                </div>
             </div>
 
-            <div class="flex items-center justify-end p-6 bg-gray-50 border-t">
+            <div class="flex items-center justify-end p-6 bg-gray-50 border-t rounded-b-lg">
                 <SecondaryButton @click="$emit('close')" type="button">Batal</SecondaryButton>
                 <PrimaryButton type="submit" class="ms-3" :disabled="form.processing">
                     Simpan Perubahan

@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,6 +22,21 @@ class ProfileController extends Controller
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
+            'user' => $request->user()->only([
+                'name',
+                'email',
+                'nik',
+                'phone',
+                'address',
+                'tempat_lahir',
+                'tanggal_lahir',
+                'jenis_kelamin',
+                'pekerjaan',
+                'agama',
+                'status_perkawinan',
+                'kewarganegaraan',
+                'profile_photo_url',
+            ]),
         ]);
     }
 
@@ -29,15 +45,33 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $validatedData = $request->validated();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // Handle profile photo upload
+        if ($request->hasFile('profile_photo')) {
+            // Delete old profile photo if exists
+            if ($user->profile_photo_path) {
+                Storage::disk('public')->delete($user->profile_photo_path);
+            }
+
+            // Store new profile photo
+            $photoPath = $request->file('profile_photo')->store('profile-photos', 'public');
+            $validatedData['profile_photo_path'] = $photoPath;
         }
 
-        $request->user()->save();
+        unset($validatedData['profile_photo']); // Remove file input from data
+        $user->fill($validatedData);
 
-        return Redirect::route('profile.edit');
+        // Reset email verification if email changed
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        $user->save();
+
+        return Redirect::route('profile.edit')
+            ->with('success', 'Profil berhasil diperbarui!');
     }
 
     /**
@@ -51,6 +85,11 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
+        // Delete profile photo if exists
+        if ($user->profile_photo_path) {
+            Storage::disk('public')->delete($user->profile_photo_path);
+        }
+
         Auth::logout();
 
         $user->delete();
@@ -59,5 +98,22 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    /**
+     * Delete the user's profile photo.
+     */
+    public function deletePhoto(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($user->profile_photo_path) {
+            Storage::disk('public')->delete($user->profile_photo_path);
+            $user->profile_photo_path = null;
+            $user->save();
+        }
+
+        return Redirect::route('profile.edit')
+            ->with('success', 'Foto profil berhasil dihapus!');
     }
 }

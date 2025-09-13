@@ -18,21 +18,21 @@ class ProsesPengajuanController extends Controller
     /**
      * Menampilkan daftar pengajuan yang statusnya 'pending' atau 'diproses'.
      */
-    public function index(Request $request)
-    {
-        $query = PengajuanSurat::whereIn('status', ['pending', 'diproses'])
-            ->with(['user:id,name,nik', 'jenisSurat:id,nama_surat']);
+   public function index(Request $request)
+{
+    $query = PengajuanSurat::whereIn('status', ['pending', 'diproses'])
+        ->with(['user:id,name,nik,profile_photo_path', 'jenisSurat:id,nama_surat']); // ✅ ambil profile_photo_path juga
 
-        $this->applyFilters($query, $request);
+    $this->applyFilters($query, $request);
 
-        $perPage = $request->get('per_page', 10);
-        $pengajuanList = $query->latest()->paginate($perPage)->withQueryString();
+    $perPage = $request->get('per_page', 10);
+    $pengajuanList = $query->latest()->paginate($perPage)->withQueryString();
 
-        return Inertia::render('Admin/Pengajuan/Index', [
-            'pengajuanList' => $pengajuanList,
-            'filters' => $request->only(['search', 'status', 'jenis_surat']),
-        ]);
-    }
+    return Inertia::render('Admin/Pengajuan/Index', [
+        'pengajuanList' => $pengajuanList,
+        'filters' => $request->only(['search', 'status', 'jenis_surat']),
+    ]);
+}
 
     /**
      * Menampilkan riwayat pengajuan yang statusnya 'selesai' atau 'ditolak'.
@@ -40,7 +40,8 @@ class ProsesPengajuanController extends Controller
     public function riwayat(Request $request)
     {
         $query = PengajuanSurat::whereIn('status', ['selesai', 'ditolak'])
-            ->with(['user:id,name,nik', 'jenisSurat:id,nama_surat']);
+           ->with(['user:id,name,nik,profile_photo_path', 'jenisSurat:id,nama_surat']);
+
             
         $this->applyFilters($query, $request);
             

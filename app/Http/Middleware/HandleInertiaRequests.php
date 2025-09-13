@@ -41,20 +41,34 @@ class HandleInertiaRequests extends Middleware
                     'phone' => $request->user()->phone,
                     'address' => $request->user()->address,
                     'tempat_lahir' => $request->user()->tempat_lahir,
-                    // PERBAIKAN: Format tanggal lahir ke Y-m-d agar sesuai dengan input HTML
-                    'tanggal_lahir' => $request->user()->tanggal_lahir ? $request->user()->tanggal_lahir->format('Y-m-d') : null,
+                    'tanggal_lahir' => $request->user()->tanggal_lahir
+                        ? $request->user()->tanggal_lahir->format('Y-m-d')
+                        : null,
                     'jenis_kelamin' => $request->user()->jenis_kelamin,
+
+                    // ✅ Tambahkan semua field baru
+                    'pekerjaan' => $request->user()->pekerjaan,
+                    'agama' => $request->user()->agama,
+                    'status_perkawinan' => $request->user()->status_perkawinan,
+                    'kewarganegaraan' => $request->user()->kewarganegaraan,
+
                     'role' => $request->user()->role,
+                    'profile_photo_url' => $request->user()->profile_photo_path
+                        ? asset('storage/'.$request->user()->profile_photo_path)
+                        : null,
                 ] : null,
             ],
+
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
+
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+
             'profilDesa' => function () {
                 return ProfilDesa::firstOrCreate(['id' => 1], [
                     'nama_desa' => 'SURELA Desa',

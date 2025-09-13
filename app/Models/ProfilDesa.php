@@ -9,11 +9,6 @@ class ProfilDesa extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'nama_desa',
         'nama_kecamatan',
@@ -36,8 +31,9 @@ class ProfilDesa extends Model
      *
      * @var array
      */
-    // PERUBAHAN DI SINI: Menambahkan casting untuk kolom JSON
     protected $casts = [
         'struktur_organisasi' => 'array',
+        // --- TAMBAHKAN BARIS INI ---
+        'misi' => 'array', 
     ];
 }

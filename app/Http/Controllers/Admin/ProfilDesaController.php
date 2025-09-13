@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -36,8 +37,10 @@ class ProfilDesaController extends Controller
     public function update(Request $request): RedirectResponse
     {
         try {
+            // Perbarui profil
             $this->profilDesaService->updateProfil($request);
 
+            // Redirect + refresh data
             return redirect()
                 ->route('admin.profil-desa.index')
                 ->with('success', 'Profil desa berhasil diperbarui.');

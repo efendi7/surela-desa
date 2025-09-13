@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\JenisSuratController;
 use App\Http\Controllers\Admin\ProsesPengajuanController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\PerangkatDesaController; // <-- Pastikan ini ada
 
 /*
 |--------------------------------------------------------------------------
@@ -27,14 +28,18 @@ use App\Http\Controllers\Admin\DashboardController;
 Route::get('/', [LandingPageController::class, 'index'])->name('welcome');
 
 // RUTE UMUM (UNTUK SEMUA USER YANG LOGIN)
+// CATATAN: Dashboard admin sebaiknya punya controller sendiri, tapi untuk sekarang ini tidak masalah.
 Route::get('/dashboard', function () {
+    // Anda mungkin ingin menambahkan logika untuk redirect ke dashboard admin jika rolenya admin
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::delete('/profile/photo', [ProfileController::class, 'deletePhoto'])->name('profile.photo.destroy');
 });
 
 // === RUTE UNTUK WARGA (setelah login) ===
@@ -52,7 +57,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/pengajuan-surat/{pengajuan}/download', [PengajuanSuratController::class, 'download'])
         ->name('pengajuan.download');
 
-    // Route untuk WARGA mengunduh suratnya yang sudah selesai (alternatif dari admin controller)
+    // Route untuk WARGA mengunduh suratnya yang sudah selesai
     Route::get('/pengajuan-surat/{pengajuan}/download-final', [ProsesPengajuanController::class, 'downloadSuratFinal'])
         ->name('warga.pengajuan.download');
 
@@ -71,10 +76,18 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\IsAdmin::class])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
+        
+        // Dashboard Admin (jika ada controller khusus)
+        // Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         // Profil Desa
         Route::get('/profil-desa', [ProfilDesaController::class, 'index'])->name('profil-desa.index');
         Route::post('/profil-desa', [ProfilDesaController::class, 'update'])->name('profil-desa.update');
+
+        // =======================================================
+        // == RUTE PERANGKAT DESA YANG HILANG, DITAMBAHKAN DI SINI ==
+        Route::resource('perangkat-desa', PerangkatDesaController::class)->except(['create', 'show', 'edit']);
+        // =======================================================
 
         // Manajemen Jenis Surat (CRUD)
         Route::resource('jenis-surat', JenisSuratController::class)->except(['create', 'show', 'edit']);
@@ -82,16 +95,11 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\IsAdmin::class])
         // Proses Pengajuan
         Route::get('/proses-pengajuan', [ProsesPengajuanController::class, 'index'])->name('proses.index');
         
-        // ==================================================================================
-        // == RUTE BARU UNTUK GENERATE SURAT DITAMBAHKAN DI SINI ==
-        // Nama rute 'pengajuan.generate' akan menjadi 'admin.pengajuan.generate' karena ada di dalam grup.
+        // Rute untuk generate surat
         Route::get('/pengajuan/{pengajuan}/generate-surat', [ProsesPengajuanController::class, 'generateSurat'])->name('pengajuan.generate');
-        // ==================================================================================
         
         // Update status pengajuan (tanpa file)
         Route::patch('/proses-pengajuan/{pengajuanSurat}', [ProsesPengajuanController::class, 'update'])->name('proses.update');
-        
-     
 
         // Upload dan manage files
         Route::post('/pengajuan/{pengajuan}/upload-file', [ProsesPengajuanController::class, 'uploadFile'])->name('proses.uploadFile');
@@ -107,3 +115,4 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\IsAdmin::class])
 });
 
 require __DIR__.'/auth.php';
+
