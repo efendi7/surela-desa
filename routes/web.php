@@ -1,92 +1,103 @@
 <?php
 
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-// General Controllers
-use App\Http\Controllers\LandingPageController; 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\PengajuanSuratController;
-use App\Http\Controllers\PublicProfilController;
+// Mengelompokkan 'use' statements agar lebih rapi
+use App\Http\Controllers\{
+    LandingPageController,
+    ProfileController,
+    PengajuanSuratController,
+    PublicProfilController,
+    DashboardController as WargaDashboardController,
+    PengaduanController,
+};
 
-// Admin Controllers
-use App\Http\Controllers\Admin\ProfilDesaController;
-use App\Http\Controllers\Admin\JenisSuratController;
-use App\Http\Controllers\Admin\ProsesPengajuanController;
-use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\PerangkatDesaController;
+use App\Http\Controllers\Admin\{
+    ProfilDesaController,
+    JenisSuratController,
+    ProsesPengajuanController,
+    UserController,
+    DashboardController as AdminDashboardController,
+    PerangkatDesaController
+};
 
 /*
 |--------------------------------------------------------------------------
 | Public Routes (Guest)
 |--------------------------------------------------------------------------
+|
+| Rute yang dapat diakses oleh semua pengunjung tanpa perlu login.
+|
 */
 
-// Landing Page
-Route::get('/', [LandingPageController::class, 'index'])->name('welcome');
-
-// Demo & Info Routes (from LandingPageController)
-Route::get('/demo', [LandingPageController::class, 'demo'])->name('demo');
-Route::get('/api/contact', [LandingPageController::class, 'contact'])->name('api.contact');
-Route::get('/api/status', [LandingPageController::class, 'status'])->name('api.status');
+// Menggunakan Route::controller untuk LandingPageController
+Route::controller(LandingPageController::class)->group(function () {
+    Route::get('/', 'index')->name('welcome');
+    Route::get('/demo', 'demo')->name('demo');
+    Route::get('/api/contact', 'contact')->name('api.contact');
+    Route::get('/api/status', 'status')->name('api.status');
+});
 
 // Public Profile Desa
-Route::prefix('profil')->name('profil.')->group(function () {
-    Route::get('/{page}', [PublicProfilController::class, 'show'])
-        ->where('page', 'sejarah|visi-misi|struktur-organisasi')
-        ->name('show');
-});
+Route::get('/profil/{page}', [PublicProfilController::class, 'show'])
+    ->where('page', 'sejarah|visi-misi|struktur-organisasi')
+    ->name('profil.show');
 
 /*
 |--------------------------------------------------------------------------
 | Authenticated Routes
 |--------------------------------------------------------------------------
+|
+| Rute yang memerlukan pengguna untuk login terlebih dahulu.
+|
 */
 
 Route::middleware(['auth', 'verified'])->group(function () {
     
-    // Dashboard with role-based redirect
+    // Dashboard dengan role-based redirect
     Route::get('/dashboard', function () {
         if (auth()->user()->role === 'admin') {
             return redirect()->route('admin.dashboard');
         }
-        return Inertia::render('Dashboard');
+        // Menggunakan syntax standar untuk memanggil controller
+        return app(WargaDashboardController::class)->index();
     })->name('dashboard');
 
     // Profile Management
-    Route::prefix('profile')->name('profile.')->group(function () {
-        Route::get('/', [ProfileController::class, 'edit'])->name('edit');
-        Route::patch('/', [ProfileController::class, 'update'])->name('update');
-        Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
-        Route::delete('/photo', [ProfileController::class, 'deletePhoto'])->name('photo.destroy');
+    Route::controller(ProfileController::class)->prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', 'edit')->name('edit');
+        Route::patch('/', 'update')->name('update');
+        Route::delete('/', 'destroy')->name('destroy');
+        Route::delete('/photo', 'deletePhoto')->name('photo.destroy');
     });
 
     // Warga Routes - Pengajuan Surat
-    Route::prefix('pengajuan-surat')->name('pengajuan.')->group(function () {
-        Route::get('/', [PengajuanSuratController::class, 'index'])->name('index');
-        Route::post('/', [PengajuanSuratController::class, 'store'])->name('store');
-        Route::delete('/{pengajuan}', [PengajuanSuratController::class, 'destroy'])->name('destroy');
-        
-        // Additional routes for pengajuan
-        Route::get('/{pengajuan}/lampiran/{key}', [PengajuanSuratController::class, 'viewLampiran'])
-            ->name('lampiran.view');
-        Route::get('/{pengajuan}/download', [PengajuanSuratController::class, 'download'])
-            ->name('download');
-        Route::get('/{pengajuan}/download-final', [ProsesPengajuanController::class, 'downloadSuratFinal'])
-            ->name('download-final');
-        
-        // Riwayat management
-        Route::delete('/riwayat/{pengajuan}', [PengajuanSuratController::class, 'destroyRiwayat'])
-            ->name('destroy-riwayat');
+    Route::controller(PengajuanSuratController::class)->prefix('pengajuan-surat')->name('pengajuan.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::delete('/{pengajuan}', 'destroy')->name('destroy');
+        Route::get('/{pengajuan}/lampiran/{key}', 'viewLampiran')->name('lampiran.view');
+        Route::get('/{pengajuan}/download', 'download')->name('download');
+        Route::delete('/riwayat/{pengajuan}', 'destroyRiwayat')->name('destroy-riwayat');
     });
+
+    Route::controller(PengaduanController::class)->prefix('pengaduan')->name('pengaduan.')->group(function () {
+        Route::get('/', 'index')->name('index'); // Menampilkan daftar pengaduan warga
+        Route::post('/', 'store')->name('store'); // Menyimpan pengaduan baru
+    });
+
+    // Rute ini tetap di sini karena dapat diakses oleh warga setelah surat selesai
+    Route::get('/pengajuan-surat/{pengajuan}/download-final', [ProsesPengajuanController::class, 'downloadSuratFinal'])
+         ->name('pengajuan.download-final');
 });
 
 /*
 |--------------------------------------------------------------------------
 | Admin Routes
 |--------------------------------------------------------------------------
+|
+| Rute khusus untuk admin, dilindungi oleh middleware 'isAdmin'.
+|
 */
 
 Route::middleware(['auth', 'verified', \App\Http\Middleware\IsAdmin::class])
@@ -95,60 +106,51 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\IsAdmin::class])
     ->group(function () {
         
         // Admin Dashboard
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
         // Profil Desa Management
-        Route::prefix('profil-desa')->name('profil-desa.')->group(function () {
-            Route::get('/', [ProfilDesaController::class, 'index'])->name('index');
-            Route::post('/', [ProfilDesaController::class, 'update'])->name('update');
+        Route::controller(ProfilDesaController::class)->prefix('profil-desa')->name('profil-desa.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'update')->name('update');
         });
 
         // Perangkat Desa Management
-        Route::prefix('perangkat-desa')->name('perangkat-desa.')->group(function () {
-            Route::get('/', [PerangkatDesaController::class, 'index'])->name('index');
-            Route::post('/', [PerangkatDesaController::class, 'store'])->name('store');
-            Route::patch('/{perangkatDesa}', [PerangkatDesaController::class, 'update'])->name('update');
-            Route::delete('/{perangkatDesa}', [PerangkatDesaController::class, 'destroy'])->name('destroy');
-        });
+        Route::resource('perangkat-desa', PerangkatDesaController::class)->except(['create', 'edit', 'show']);
 
         // Jenis Surat Management
-        Route::prefix('jenis-surat')->name('jenis-surat.')->group(function () {
-            Route::get('/', [JenisSuratController::class, 'index'])->name('index');
-            Route::post('/', [JenisSuratController::class, 'store'])->name('store');
-            Route::patch('/{jenisSurat}', [JenisSuratController::class, 'update'])->name('update');
-            Route::delete('/{jenisSurat}', [JenisSuratController::class, 'destroy'])->name('destroy');
-        });
+        Route::resource('jenis-surat', JenisSuratController::class)->except(['create', 'edit', 'show']);
 
-        // Proses Pengajuan Management
-        Route::prefix('proses-pengajuan')->name('proses.')->group(function () {
-            Route::get('/', [ProsesPengajuanController::class, 'index'])->name('index');
-            Route::get('/riwayat', [ProsesPengajuanController::class, 'riwayat'])->name('riwayat');
-            Route::patch('/{pengajuanSurat}', [ProsesPengajuanController::class, 'update'])->name('update');
-            Route::delete('/{pengajuan}', [ProsesPengajuanController::class, 'destroy'])->name('destroy');
-            
-            // File & Document Management
-            Route::get('/{pengajuan}/generate-surat', [ProsesPengajuanController::class, 'generateSurat'])
-                ->name('generate-surat');
-            Route::post('/{pengajuan}/upload-file', [ProsesPengajuanController::class, 'uploadFile'])
-                ->name('upload-file');
-            Route::delete('/{pengajuan}/hapus-file', [ProsesPengajuanController::class, 'hapusFile'])
-                ->name('hapus-file');
-            Route::post('/{pengajuan}/konfirmasi-final', [ProsesPengajuanController::class, 'konfirmasiFinal'])
-                ->name('konfirmasi-final');
-        });
+       // routes/web.php - SEBELUM
+Route::controller(ProsesPengajuanController::class)
+    ->prefix('proses-pengajuan')
+    ->name('proses.') // <-- UBAH INI
+    ->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/riwayat', 'riwayat')->name('riwayat');
+        Route::patch('/{pengajuanSurat}', 'update')->name('update');
+        Route::delete('/{pengajuan}', 'destroy')->name('destroy');
+        Route::get('/{pengajuan}/generate-surat', 'generateSurat')
+            ->name('generate-surat'); // <-- DAN UBAH INI
+        Route::post('/{pengajuan}/upload-file', 'uploadFile')->name('upload-file');
+        Route::delete('/{pengajuan}/hapus-file', 'hapusFile')->name('hapus-file');
+        Route::post('/{pengajuan}/konfirmasi-final', 'konfirmasiFinal')->name('konfirmasi-final');
+    });
 
         // User Management
-        Route::prefix('users')->name('users.')->group(function () {
-            Route::get('/', [UserController::class, 'index'])->name('index');
-            Route::post('/', [UserController::class, 'store'])->name('store');
-            Route::patch('/{user}', [UserController::class, 'update'])->name('update');
-            Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy');
+        Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);
+
+        Route::controller(PengaduanController::class)->prefix('pengaduan')->name('pengaduan.')->group(function () {
+            Route::get('/', 'adminIndex')->name('index'); // Halaman Pengaduan Aktif
+            Route::get('/riwayat', 'adminRiwayat')->name('riwayat'); // Halaman Riwayat Baru
+            Route::get('/{pengaduan}', 'adminShow')->name('show');
+            Route::patch('/{pengaduan}/status', 'adminUpdateStatus')->name('update.status');
+            Route::post('/{pengaduan}/proses', 'adminUploadProses')->name('upload.proses');
         });
 
         // API Routes for Admin
-        Route::prefix('api')->name('api.')->group(function () {
-            Route::get('/statistics', [DashboardController::class, 'getStatistics'])->name('statistics');
-            Route::get('/recent-activities', [DashboardController::class, 'getRecentActivities'])->name('activities');
+        Route::controller(AdminDashboardController::class)->prefix('api')->name('api.')->group(function () {
+            Route::get('/statistics', 'getStatistics')->name('statistics');
+            Route::get('/recent-activities', 'getRecentActivities')->name('activities');
         });
     });
 

@@ -38,22 +38,17 @@ class PengajuanSuratService implements PengajuanSuratServiceInterface
             'jenisSuratTersedia' => JenisSurat::get(['id', 'nama_surat', 'syarat']),
             'pengajuanAktif' => $pengajuanAktif,
             'riwayatPengajuan' => $riwayatPengajuan,
-            'isProfileComplete' => $this->isProfileComplete($user),
+            // [PERUBAHAN] Langsung panggil accessor dari model User. Lebih bersih dan konsisten.
+            'isProfileComplete' => $user->is_profile_complete,
         ];
     }
 
     /**
-     * Check apakah profil user sudah lengkap
+     * [PERUBAHAN] Method ini sudah tidak diperlukan lagi dan dihapus
+     * karena logikanya telah dipindahkan ke accessor di model User.
      */
-    public function isProfileComplete(User $user): bool
-    {
-        $requiredProfileFields = [
-            'nik', 'address', 'phone', 'tempat_lahir', 'tanggal_lahir', 
-            'jenis_kelamin', 'pekerjaan', 'agama', 'status_perkawinan', 'kewarganegaraan'
-        ];
-
-        return collect($requiredProfileFields)->every(fn($field) => !empty($user->{$field}));
-    }
+    // public function isProfileComplete(User $user): bool
+    // { ... }
 
     /**
      * Process dan tambahkan URL lampiran ke pengajuan
@@ -75,7 +70,6 @@ class PengajuanSuratService implements PengajuanSuratServiceInterface
             $pengajuan->lampiran = $lampiranWithUrls;
         }
         
-        // Juga tambahkan URL untuk file hasil jika ada
         if ($pengajuan->file_hasil) {
             $pengajuan->file_hasil_url = Storage::disk('public')->url($pengajuan->file_hasil);
             $pengajuan->file_hasil_exists = Storage::disk('public')->exists($pengajuan->file_hasil);
@@ -104,7 +98,6 @@ class PengajuanSuratService implements PengajuanSuratServiceInterface
             $lampiranPaths = $this->storeFileLampiran($validatedData['lampiran'], $userId);
         }
 
-        // Membuat entri timeline pertama saat pengajuan dibuat
         $initialTimeline = [
             [
                 'status' => 'pending',
@@ -143,7 +136,7 @@ class PengajuanSuratService implements PengajuanSuratServiceInterface
     }
 
     /**
-     * Download file hasil pengajuan - FIXED VERSION
+     * Download file hasil pengajuan
      */
     public function downloadFileHasil(PengajuanSurat $pengajuan): BinaryFileResponse
     {
@@ -151,11 +144,9 @@ class PengajuanSuratService implements PengajuanSuratServiceInterface
             abort(404, 'File tidak ditemukan.');
         }
 
-        // Get file extension from the actual file
         $fileExtension = pathinfo($pengajuan->file_hasil, PATHINFO_EXTENSION);
         $fileName = 'Surat_' . $pengajuan->jenisSurat->nama_surat . '_' . $pengajuan->user->name . '.' . $fileExtension;
         
-        // Use response()->download() instead of Storage::download() to ensure BinaryFileResponse
         $fullPath = Storage::disk('public')->path($pengajuan->file_hasil);
         
         return response()->download($fullPath, $fileName);
@@ -166,65 +157,25 @@ class PengajuanSuratService implements PengajuanSuratServiceInterface
      */
     public function viewLampiran(PengajuanSurat $pengajuan, string $key): BinaryFileResponse
     {
-        \Log::info('ViewLampiran called', [
-            'pengajuan_id' => $pengajuan->id,
-            'key' => $key,
-            'lampiran' => $pengajuan->lampiran
-        ]);
-
-        if (!$pengajuan->lampiran || !isset($pengajuan->lampiran[$key])) {
-            \Log::error('File lampiran tidak ditemukan', [
-                'pengajuan_id' => $pengajuan->id,
-                'key' => $key,
-                'available_keys' => $pengajuan->lampiran ? array_keys($pengajuan->lampiran) : []
-            ]);
+        if (!$pengajuan->lampiran || !isset($pengajuan->lampiran[$key]) || !is_array($pengajuan->lampiran[$key]) || !isset($pengajuan->lampiran[$key]['path'])) {
             abort(404, 'File lampiran tidak ditemukan.');
         }
 
-        $fileData = $pengajuan->lampiran[$key];
-        
-        \Log::info('File data found', ['file_data' => $fileData]);
-
-        if (!is_array($fileData) || !isset($fileData['path'])) {
-            \Log::error('Invalid file data structure', ['file_data' => $fileData]);
-            abort(404, 'Data file tidak valid.');
-        }
-
-        $filePath = $fileData['path'];
+        $filePath = $pengajuan->lampiran[$key]['path'];
 
         if (!Storage::disk('public')->exists($filePath)) {
-            \Log::error('File tidak ditemukan di storage', [
-                'path' => $filePath,
-                'full_path' => Storage::disk('public')->path($filePath)
-            ]);
             abort(404, 'File tidak ditemukan di storage.');
         }
 
-        $fileName = $fileData['original_name'] ?? 'document.pdf';
+        $fileName = $pengajuan->lampiran[$key]['original_name'] ?? 'document.pdf';
         
-        try {
-            $mimeType = Storage::disk('public')->mimeType($filePath);
-            
-            \Log::info('Serving file', [
-                'path' => $filePath,
-                'filename' => $fileName,
-                'mime_type' => $mimeType
-            ]);
-            
-            return response()->file(
-                Storage::disk('public')->path($filePath),
-                [
-                    'Content-Type' => $mimeType,
-                    'Content-Disposition' => 'inline; filename="' . $fileName . '"'
-                ]
-            );
-        } catch (\Exception $e) {
-            \Log::error('Error serving file', [
-                'error' => $e->getMessage(),
-                'path' => $filePath
-            ]);
-            abort(500, 'Terjadi kesalahan saat membuka file.');
-        }
+        return response()->file(
+            Storage::disk('public')->path($filePath),
+            [
+                'Content-Type' => Storage::disk('public')->mimeType($filePath),
+                'Content-Disposition' => 'inline; filename="' . $fileName . '"'
+            ]
+        );
     }
 
     /**
@@ -236,7 +187,6 @@ class PengajuanSuratService implements PengajuanSuratServiceInterface
             throw new \Exception('Pengajuan ini sudah diproses dan tidak bisa dibatalkan.');
         }
         
-        // Hapus file lampiran dari storage
         if ($pengajuan->lampiran && is_array($pengajuan->lampiran)) {
             $this->deleteLampiranFiles($pengajuan->lampiran);
         }
@@ -253,7 +203,6 @@ class PengajuanSuratService implements PengajuanSuratServiceInterface
             throw new \Exception('Hanya riwayat yang sudah selesai atau ditolak yang bisa dihapus.');
         }
 
-        // Hapus semua file terkait (lampiran dan hasil)
         if ($pengajuan->lampiran && is_array($pengajuan->lampiran)) {
             $this->deleteLampiranFiles($pengajuan->lampiran);
         }

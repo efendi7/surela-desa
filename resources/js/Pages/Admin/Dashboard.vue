@@ -2,7 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
-import { Users, FileText, CheckSquare, Mail, Briefcase, Activity, LineChart, PieChart } from 'lucide-vue-next';
+import { Users, FileText, CheckSquare, Mail, Briefcase, Activity, LineChart, PieChart, Clock } from 'lucide-vue-next';
 
 // Props
 const props = defineProps({
@@ -10,10 +10,15 @@ const props = defineProps({
         type: Object,
         default: () => ({
             totalUsers: 0,
-            pendingSubmissions: 0,
-            processedSubmissions: 0,
             letterTypes: 0,
             totalPerangkatDesa: 0,
+            // Data baru
+            unprocessedCount: 0,
+            pendingCount: 0,
+            onProcessCount: 0,
+            processedCount: 0,
+            completedCount: 0,
+            rejectedCount: 0,
         }),
     },
     recentActivities: {
@@ -113,86 +118,104 @@ const initCharts = () => {
     };
 
     // 2. Daily Submissions Trend Chart (Line)
-    const dailyTrendChartOptions = {
-        chart: {
-            type: 'line',
-            height: 350,
-            fontFamily: "'Poppins', sans-serif",
-            zoom: {
-                enabled: false
-            },
-            toolbar: {
-                show: true
-            }
-        },
-        series: [{
-            name: 'Jumlah Pengajuan',
-            data: props.chartData.dailyTrend.totals
-        }],
-        xaxis: {
-            categories: props.chartData.dailyTrend.dates,
-            labels: {
-                style: {
-                    fontSize: '12px',
-                    fontWeight: 400,
-                    fontFamily: "'Poppins', sans-serif",
-                }
-            }
-        },
-        yaxis: {
-            title: {
-                text: 'Jumlah Pengajuan',
-                style: {
-                    fontFamily: "'Poppins', sans-serif",
-                    fontWeight: 400,
-                    color: '#6B7280'
-                }
-            },
-            min: 0,
-            forceNiceScale: true,
-            labels: {
-                formatter: function (val) {
-                    return val.toFixed(0);
-                },
-                style: {
-                    fontFamily: "'Poppins', sans-serif",
-                    fontWeight: 400,
-                }
-            },
-            tickAmount: (maxDailyValue > 0 && maxDailyValue < 6) ? maxDailyValue + 1 : undefined,
-        },
-        colors: ['#4F46E5'],
-        stroke: {
-            curve: 'smooth',
-            width: 3
-        },
-        dataLabels: {
+    // Daily Submissions Trend Chart (Line) dengan Gradient Fill
+const dailyTrendChartOptions = {
+    chart: {
+        type: 'area', // Ubah dari 'line' ke 'area' untuk mendukung fill
+        height: 350,
+        fontFamily: "'Poppins', sans-serif",
+        zoom: {
             enabled: false
         },
-        title: {
-            text: 'Tren Pengajuan Surat (30 Hari Terakhir)',
-            align: 'center',
+        toolbar: {
+            show: true
+        }
+    },
+    
+    series: [{
+        name: 'Jumlah Pengajuan',
+        data: props.chartData.dailyTrend.totals
+    }],
+    
+    // Konfigurasi Fill dengan Gradient
+    fill: {
+        type: 'gradient',
+        gradient: {
+            shade: 'light',
+            type: 'vertical',
+            shadeIntensity: 0.5,
+            gradientToColors: ['#E0F2FE'], // Warna akhir gradient (light blue)
+            inverseColors: false,
+            opacityFrom: 0.8,
+            opacityTo: 0.1,
+            stops: [0, 100]
+        }
+    },
+    
+    xaxis: {
+        categories: props.chartData.dailyTrend.dates,
+        labels: {
             style: {
-                fontSize: '16px',
+                fontSize: '12px',
                 fontWeight: 400,
-                color: '#6B7280',
                 fontFamily: "'Poppins', sans-serif",
             }
-        },
-        grid: {
-            borderColor: '#E5E7EB',
-            strokeDashArray: 4,
-            row: {
-                colors: ['#f3f4f6', 'transparent'],
-                opacity: 0.5
-            },
-        },
-        tooltip: {
-            x: {
-                format: 'dd MMMM yyyy'
-            },
         }
-    };
+    },
+    yaxis: {
+        title: {
+            text: 'Jumlah Pengajuan',
+            style: {
+                fontFamily: "'Poppins', sans-serif",
+                fontWeight: 400,
+                color: '#6B7280'
+            }
+        },
+        min: 0,
+        forceNiceScale: true,
+        labels: {
+            formatter: function (val) {
+                return val.toFixed(0);
+            },
+            style: {
+                fontFamily: "'Poppins', sans-serif",
+                fontWeight: 400,
+            }
+        },
+        tickAmount: (maxDailyValue > 0 && maxDailyValue < 6) ? maxDailyValue + 1 : undefined,
+    },
+    colors: ['#4F46E5'], // Warna utama line
+    stroke: {
+        curve: 'smooth',
+        width: 3
+    },
+    dataLabels: {
+        enabled: false
+    },
+    title: {
+        text: 'Tren Pengajuan Surat (30 Hari Terakhir)',
+        align: 'center',
+        style: {
+            fontSize: '16px',
+            fontWeight: 400,
+            color: '#6B7280',
+            fontFamily: "'Poppins', sans-serif",
+        }
+    },
+    grid: {
+        borderColor: '#E5E7EB',
+        strokeDashArray: 4,
+        row: {
+            colors: ['#f3f4f6', 'transparent'],
+            opacity: 0.5
+        },
+    },
+    tooltip: {
+        x: {
+            format: 'dd MMMM yyyy'
+        },
+    }
+};
 
     if (statusChartRef.value) {
         const statusChart = new ApexCharts(statusChartRef.value, statusChartOptions);
@@ -243,59 +266,87 @@ const initCharts = () => {
                 </div>
 
 
-                <!-- Statistics Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-                    <!-- Total Pengguna -->
-                    <div class="bg-white overflow-hidden shadow-xl sm:rounded-2xl border border-gray-200 p-6 flex items-center gap-4 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-                        <div class="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg">
-                            <Users class="h-6 w-6" />
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Total Pengguna</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ statistics.totalUsers }}</p>
-                        </div>
-                    </div>
-                    <!-- Pengajuan Pending -->
-                    <div class="bg-white overflow-hidden shadow-xl sm:rounded-2xl border border-gray-200 p-6 flex items-center gap-4 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-                        <div class="p-3 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 text-white shadow-lg">
-                            <FileText class="h-6 w-6" />
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Pengajuan Pending</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ statistics.pendingSubmissions }}</p>
-                        </div>
-                    </div>
-                    <!-- Surat Diproses -->
-                    <div class="bg-white overflow-hidden shadow-xl sm:rounded-2xl border border-gray-200 p-6 flex items-center gap-4 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-                        <div class="p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 text-white shadow-lg">
-                            <CheckSquare class="h-6 w-6" />
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Surat Diproses</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ statistics.processedSubmissions }}</p>
-                        </div>
-                    </div>
-                    <!-- Jenis Surat -->
-                    <div class="bg-white overflow-hidden shadow-xl sm:rounded-2xl border border-gray-200 p-6 flex items-center gap-4 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-                        <div class="p-3 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-lg">
-                            <Mail class="h-6 w-6" />
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Jenis Surat</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ statistics.letterTypes }}</p>
-                        </div>
-                    </div>
-                    <!-- Perangkat Desa -->
-                    <div class="bg-white overflow-hidden shadow-xl sm:rounded-2xl border border-gray-200 p-6 flex items-center gap-4 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-                        <div class="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg">
-                            <Briefcase class="h-6 w-6" />
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Perangkat Desa</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ statistics.totalPerangkatDesa }}</p>
-                        </div>
-                    </div>
-                </div>
+               <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+    
+    <div class="bg-white p-5 rounded-xl shadow-lg border border-gray-100 flex items-center gap-4">
+        <div class="p-3 rounded-lg bg-blue-100">
+            <Users class="h-6 w-6 text-blue-600" />
+        </div>
+        <div>
+            <p class="text-sm font-medium text-gray-500">Total Pengguna</p>
+            <p class="text-2xl font-bold text-gray-900">{{ statistics.totalUsers }}</p>
+        </div>
+    </div>
+
+   <div class="relative group bg-white p-5 rounded-xl shadow-lg border border-gray-100 flex items-center gap-4 transition-transform transform hover:-translate-y-1 cursor-pointer">
+    
+    <div class="p-3 rounded-lg bg-amber-100">
+        <Clock class="h-6 w-6 text-amber-600" />
+    </div>
+
+    <div>
+        <p class="text-sm font-medium text-gray-500">Sedang Diproses</p>
+        <p class="text-2xl font-bold text-gray-900">{{ statistics.unprocessedCount }}</p>
+    </div>
+
+    <div class="absolute bottom-full mb-2 w-max bg-gray-800 text-white text-xs rounded-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+        <div class="flex items-center">
+            <span class="inline-block w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>
+            <span>Pending: {{ statistics.pendingCount }}</span>
+        </div>
+        <div class="flex items-center mt-1">
+            <span class="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+            <span>Diproses: {{ statistics.onProcessCount }}</span>
+        </div>
+        <svg class="absolute text-gray-800 h-2 w-full left-0 top-full" x="0px" y="0px" viewBox="0 0 255 255" xml:space="preserve"><polygon class="fill-current" points="0,0 127.5,127.5 255,0"/></svg>
+    </div>
+</div>
+    
+    <div class="relative group bg-white p-5 rounded-xl shadow-lg border border-gray-100 flex items-center gap-4 transition-transform transform hover:-translate-y-1 cursor-pointer">
+    
+    <div class="p-3 rounded-lg bg-emerald-100">
+        <CheckSquare class="h-6 w-6 text-emerald-600" />
+    </div>
+
+    <div>
+        <p class="text-sm font-medium text-gray-500">Telah Diproses</p>
+        <p class="text-2xl font-bold text-gray-900">{{ statistics.processedCount }}</p>
+    </div>
+
+    <div class="absolute bottom-full mb-2 w-max bg-gray-800 text-white text-xs rounded-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+        <div class="flex items-center">
+            <span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+            <span>Selesai: {{ statistics.completedCount }}</span>
+        </div>
+        <div class="flex items-center mt-1">
+            <span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+            <span>Ditolak: {{ statistics.rejectedCount }}</span>
+        </div>
+        <svg class="absolute text-gray-800 h-2 w-full left-0 top-full" x="0px" y="0px" viewBox="0 0 255 255" xml:space="preserve"><polygon class="fill-current" points="0,0 127.5,127.5 255,0"/></svg>
+    </div>
+</div>
+
+    <div class="bg-white p-5 rounded-xl shadow-lg border border-gray-100 flex items-center gap-4">
+        <div class="p-3 rounded-lg bg-indigo-100">
+            <Mail class="h-6 w-6 text-indigo-600" />
+        </div>
+        <div>
+            <p class="text-sm font-medium text-gray-500">Jenis Surat</p>
+            <p class="text-2xl font-bold text-gray-900">{{ statistics.letterTypes }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white p-5 rounded-xl shadow-lg border border-gray-100 flex items-center gap-4">
+        <div class="p-3 rounded-lg bg-purple-100">
+            <Briefcase class="h-6 w-6 text-purple-600" />
+        </div>
+        <div>
+            <p class="text-sm font-medium text-gray-500">Perangkat Desa</p>
+            <p class="text-2xl font-bold text-gray-900">{{ statistics.totalPerangkatDesa }}</p>
+        </div>
+    </div>
+
+</div>
 
                 <!-- Charts Section -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">

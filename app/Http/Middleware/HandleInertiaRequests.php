@@ -53,9 +53,7 @@ class HandleInertiaRequests extends Middleware
                     'kewarganegaraan' => $request->user()->kewarganegaraan,
 
                     'role' => $request->user()->role,
-                    'profile_photo_url' => $request->user()->profile_photo_path
-                        ? asset('storage/'.$request->user()->profile_photo_path)
-                        : null,
+                    'profile_photo_url' => $request->user()->profile_photo_url,
                 ] : null,
             ],
 
@@ -70,17 +68,20 @@ class HandleInertiaRequests extends Middleware
             ],
 
             'profilDesa' => function () {
-                return ProfilDesa::firstOrCreate(['id' => 1], [
-                    'nama_desa' => 'SURELA Desa',
-                    'nama_kecamatan' => 'Nama Kecamatan',
-                    'nama_kabupaten' => 'Nama Kabupaten',
-                    'nama_provinsi' => 'Nama Provinsi',
-                    'alamat' => 'Alamat lengkap kantor desa.',
-                    'email' => 'email@desa.id',
-                    'telepon' => '081234567890',
-                    'nama_kepala_desa' => 'Nama Kepala Desa',
-                ]);
-            },
+    // [PERBAIKAN] Menggunakan cache untuk menyimpan data selama 1 hari (1440 menit)
+    return \Illuminate\Support\Facades\Cache::remember('profil_desa', 1440, function () {
+        return ProfilDesa::firstOrCreate(['id' => 1], [
+            'nama_desa' => 'SURELA Desa',
+            'nama_kecamatan' => 'Nama Kecamatan',
+            'nama_kabupaten' => 'Nama Kabupaten',
+            'nama_provinsi' => 'Nama Provinsi',
+            'alamat' => 'Alamat lengkap kantor desa.',
+            'email' => 'email@desa.id',
+            'telepon' => '081234567890',
+            'nama_kepala_desa' => 'Nama Kepala Desa',
+        ]);
+    });
+},
         ]);
     }
 }

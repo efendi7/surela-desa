@@ -16,43 +16,66 @@ class DashboardController extends Controller
     /**
      * Menampilkan halaman dashboard admin dengan data statistik dan aktivitas terbaru.
      */
-    public function index()
-    {
-        // Mengambil data untuk kartu statistik
-        $statistics = [
-            'totalUsers' => User::where('role', 'warga')->count(),
-            'pendingSubmissions' => PengajuanSurat::where('status', 'pending')->count(), // Disesuaikan dengan status di Vue
-            'processedSubmissions' => PengajuanSurat::whereIn('status', ['selesai', 'ditolak'])->count(), // Disesuaikan
-            'letterTypes' => JenisSurat::count(),
-            'totalPerangkatDesa' => PerangkatDesa::count(),
-        ];
+   public function index()
+{
+    // --- PERUBAHAN DIMULAI DI SINI ---
 
-        // Mengambil 10 aktivitas pengajuan surat terbaru
-        $recentActivities = PengajuanSurat::with(['user:id,name', 'jenisSurat:id,nama_surat'])
-            ->latest()
-            ->take(10)
-            ->get();
+    // Mengambil semua hitungan status dalam satu query untuk efisiensi
+    $statusCounts = PengajuanSurat::select('status', DB::raw('count(*) as total'))
+        ->groupBy('status')
+        ->pluck('total', 'status');
 
-        // Data khusus untuk chart
-        $chartData = [
-            'statusDistribution' => [
-                'pending' => PengajuanSurat::where('status', 'pending')->count(),
-                'diproses' => PengajuanSurat::where('status', 'diproses')->count(),
-                'selesai' => PengajuanSurat::where('status', 'selesai')->count(),
-                'ditolak' => PengajuanSurat::where('status', 'ditolak')->count(),
-            ],
-            'dailyTrend' => $this->getDailySubmissions(), // Menggunakan data harian
-            'letterTypeDistribution' => $this->getLetterTypeDistribution()
-        ];
+    // Menyiapkan nilai default 0 jika status tidak ada
+    $pendingCount = $statusCounts->get('pending', 0);
+    $diprosesCount = $statusCounts->get('diproses', 0);
+    $selesaiCount = $statusCounts->get('selesai', 0);
+    $ditolakCount = $statusCounts->get('ditolak', 0);
 
-        // Me-render komponen Vue dengan data yang sudah diambil
-        return Inertia::render('Admin/Dashboard', [
-            'statistics' => $statistics,
-            'recentActivities' => $recentActivities,
-            'chartData' => $chartData
-        ]);
-    }
+    // Mengambil data untuk kartu statistik dengan struktur baru
+    $statistics = [
+        'totalUsers' => User::where('role', 'warga')->count(),
+        'letterTypes' => JenisSurat::count(),
+        'totalPerangkatDesa' => PerangkatDesa::count(),
 
+        // Data untuk kartu "Belum Diproses"
+        'unprocessedCount' => $pendingCount + $diprosesCount,
+        'pendingCount' => $pendingCount,
+        'onProcessCount' => $diprosesCount,
+
+        // Data untuk kartu "Telah Diproses"
+        'processedCount' => $selesaiCount + $ditolakCount,
+        'completedCount' => $selesaiCount,
+        'rejectedCount' => $ditolakCount,
+    ];
+
+    // --- AKHIR PERUBAHAN ---
+
+
+    // Mengambil 10 aktivitas pengajuan surat terbaru
+    $recentActivities = PengajuanSurat::with(['user:id,name', 'jenisSurat:id,nama_surat'])
+        ->latest()
+        ->take(10)
+        ->get();
+
+    // Data khusus untuk chart
+    $chartData = [
+        'statusDistribution' => [
+            'pending' => $pendingCount,
+            'diproses' => $diprosesCount,
+            'selesai' => $selesaiCount,
+            'ditolak' => $ditolakCount,
+        ],
+        'dailyTrend' => $this->getDailySubmissions(),
+        'letterTypeDistribution' => $this->getLetterTypeDistribution()
+    ];
+
+    // Me-render komponen Vue dengan data yang sudah diambil
+    return Inertia::render('Admin/Dashboard', [
+        'statistics' => $statistics,
+        'recentActivities' => $recentActivities,
+        'chartData' => $chartData
+    ]);
+}
     /**
      * Mendapatkan data pengajuan per hari selama 30 hari terakhir untuk line chart.
      */

@@ -146,7 +146,7 @@ onUnmounted(() => {
                 <!-- Actions for "diproses" status -->
                 <template v-if="item.status === 'diproses'">
                     <!-- Generate Surat -->
-                    <a :href="route('admin.pengajuan.generate', { pengajuan: item.id })"
+                    <a :href="route('admin.proses.generate-surat', { pengajuan: item.id })"
                        @click="closeDropdown"
                        class="w-full px-4 py-2 text-left text-sm text-purple-700 hover:bg-purple-50 flex items-center transition-colors duration-150">
                         <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

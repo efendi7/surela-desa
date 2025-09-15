@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Casts\Attribute; // [PERUBAHAN] Pastikan ini ada
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -25,9 +26,9 @@ class User extends Authenticatable
         'password',
         'profile_photo_path',
         'nik',
-        'phone',
+        'phone', // Nama kolom yang benar adalah 'phone'
         'role',
-        'address',
+        'address', // Nama kolom yang benar adalah 'address'
         'tempat_lahir',
         'tanggal_lahir',
         'jenis_kelamin',
@@ -54,6 +55,7 @@ class User extends Authenticatable
      */
     protected $appends = [
         'profile_photo_url',
+        'is_profile_complete', // [PERUBAHAN] Tambahkan accessor ini ke appends
     ];
 
     /**
@@ -72,9 +74,6 @@ class User extends Authenticatable
 
     /**
      * Get the URL to the user's profile photo.
-     *
-     * This accessor provides the public URL for the user's profile photo,
-     * or a default avatar from DiceBear if no photo is set.
      */
     public function getProfilePhotoUrlAttribute(): string
     {
@@ -83,5 +82,20 @@ class User extends Authenticatable
         }
 
         return 'https://api.dicebear.com/8.x/initials/svg?seed=' . urlencode($this->name);
+    }
+
+    /**
+     * [PERUBAHAN] Accessor untuk mengecek apakah profil pengguna sudah lengkap.
+     * Logika terpusat di sini.
+     *
+     * @return \Illuminate\Database\Eloquent\Casts\Attribute
+     */
+    protected function isProfileComplete(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => !empty($this->nik) &&
+                         !empty($this->address) && // Menggunakan nama kolom yang benar
+                         !empty($this->phone) // Menambahkan pengecekan nomor telepon
+        );
     }
 }

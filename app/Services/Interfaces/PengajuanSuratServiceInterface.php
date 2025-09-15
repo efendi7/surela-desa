@@ -16,9 +16,10 @@ interface PengajuanSuratServiceInterface
     public function getIndexData(User $user): array;
 
     /**
-     * Check apakah profil user sudah lengkap
+     * [PERUBAHAN] Method ini dihapus dari kontrak karena logikanya 
+     * sudah dipindahkan ke accessor di model User.
      */
-    public function isProfileComplete(User $user): bool;
+    // public function isProfileComplete(User $user): bool;
 
     /**
      * Process dan tambahkan URL lampiran ke pengajuan
@@ -42,7 +43,6 @@ interface PengajuanSuratServiceInterface
 
     /**
      * Download file hasil pengajuan
-     * Fixed: Ensures BinaryFileResponse is returned
      */
     public function downloadFileHasil(PengajuanSurat $pengajuan): BinaryFileResponse;
 
