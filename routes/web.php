@@ -140,12 +140,17 @@ Route::controller(ProsesPengajuanController::class)
         Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);
 
         Route::controller(PengaduanController::class)->prefix('pengaduan')->name('pengaduan.')->group(function () {
-            Route::get('/', 'adminIndex')->name('index'); // Halaman Pengaduan Aktif
-            Route::get('/riwayat', 'adminRiwayat')->name('riwayat'); // Halaman Riwayat Baru
-            Route::get('/{pengaduan}', 'adminShow')->name('show');
-            Route::patch('/{pengaduan}/status', 'adminUpdateStatus')->name('update.status');
-            Route::post('/{pengaduan}/proses', 'adminUploadProses')->name('upload.proses');
-        });
+    Route::get('/', 'adminIndex')->name('index'); // admin.pengaduan.index
+    Route::get('/riwayat', 'adminRiwayat')->name('riwayat'); // admin.pengaduan.riwayat  
+    Route::get('/{pengaduan}', 'adminShow')->name('show'); // admin.pengaduan.show
+    Route::patch('/{pengaduan}/status', 'adminUpdateStatus')->name('update.status'); // admin.pengaduan.update.status
+    
+    // PERBAIKAN: Konsisten dengan nama method di controller
+    Route::post('/{pengaduan}/upload-proses', 'adminUploadProses')->name('upload.proses'); // admin.pengaduan.upload.proses
+    
+    // PERBAIKAN: Hapus /admin dari path karena sudah dalam group prefix admin
+    Route::patch('/{pengaduan}/update-details', 'adminUpdateDetails')->name('updateDetails'); // admin.pengaduan.updateDetails
+});
 
         // API Routes for Admin
         Route::controller(AdminDashboardController::class)->prefix('api')->name('api.')->group(function () {

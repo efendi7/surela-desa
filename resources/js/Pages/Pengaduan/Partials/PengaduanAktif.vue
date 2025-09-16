@@ -16,6 +16,7 @@ const { getStatusClass, getStatusIcon, formatDate } = usePengaduanUtils();
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Judul Masalah</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Laporan</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
@@ -30,6 +31,7 @@ const { getStatusClass, getStatusIcon, formatDate } = usePengaduanUtils();
                     </tr>
                     <tr v-else v-for="laporan in pengaduanAktif" :key="laporan.id" class="hover:bg-gray-50">
                         <td class="px-4 py-4 font-medium text-gray-900 text-sm whitespace-nowrap">{{ laporan.judul }}</td>
+                         <td class="px-4 py-4 text-sm text-gray-700 whitespace-nowrap">{{ laporan.kategori || '-' }}</td>
                         <td class="px-4 py-4 text-sm text-gray-700 whitespace-nowrap">{{ formatDate(laporan.created_at) }}</td>
                         <td class="px-4 py-4">
                              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize" :class="getStatusClass(laporan.status)">

@@ -25,6 +25,10 @@ const form = useForm({
     judul: '',
     deskripsi: '',
     foto_bukti: null,
+    alamat: '',
+    kategori: '',
+    latitude: '',
+    longitude: '',
 });
 
 const modalTitle = computed(() => props.mode === 'create' ? 'Buat Laporan / Pengaduan Baru' : 'Detail Laporan / Pengaduan');
@@ -73,11 +77,32 @@ const submit = () => {
                         <InputError class="mt-2" :message="form.errors.deskripsi" />
                     </div>
                     <div>
+                        <InputLabel for="kategori" value="Kategori Masalah" />
+                        <TextInput id="kategori" v-model="form.kategori" type="text" class="mt-1 block w-full" placeholder="cth: Infrastruktur, Kebersihan" />
+                        <InputError class="mt-2" :message="form.errors.kategori" />
+                    </div>
+                    <div>
+                        <InputLabel for="alamat" value="Alamat/Lokasi Kejadian (Opsional)" />
+                        <TextArea id="alamat" v-model="form.alamat" class="mt-1 block w-full" rows="3" />
+                        <InputError class="mt-2" :message="form.errors.alamat" />
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <InputLabel for="latitude" value="Latitude (Opsional)" />
+                            <TextInput id="latitude" v-model="form.latitude" type="text" class="mt-1 block w-full" placeholder="-7.00514" />
+                            <InputError class="mt-2" :message="form.errors.latitude" />
+                        </div>
+                        <div>
+                            <InputLabel for="longitude" value="Longitude (Opsional)" />
+                            <TextInput id="longitude" v-model="form.longitude" type="text" class="mt-1 block w-full" placeholder="110.43812" />
+                            <InputError class="mt-2" :message="form.errors.longitude" />
+                        </div>
+                    </div>
+                    <div>
                         <InputLabel for="foto_bukti" value="Foto Bukti (Wajib)" />
                         <input id="foto_bukti" type="file" @change="handleFileChange" accept="image/jpeg,image/png,image/jpg" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 file:cursor-pointer"/>
                         <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG. Maksimal 2MB.</p>
                         <InputError class="mt-2" :message="form.errors.foto_bukti" />
-
                         <div v-if="photoPreview" class="mt-4 border rounded-lg p-2">
                             <p class="text-sm font-medium text-gray-600 mb-2">Preview:</p>
                             <img :src="photoPreview" class="w-full h-auto max-h-64 object-contain rounded" alt="Preview Foto Bukti">
@@ -86,17 +111,46 @@ const submit = () => {
                 </form>
 
                 <div v-if="mode === 'view' && pengaduan" class="space-y-6">
-                     <div class="bg-white rounded-lg p-4 shadow-sm border">
+                    <div class="bg-white rounded-lg p-4 shadow-sm border">
                         <div class="flex justify-between items-start">
                             <div>
                                 <h3 class="text-lg font-bold text-gray-900">{{ pengaduan.judul }}</h3>
                                 <p class="text-sm text-gray-500">Dilaporkan pada: {{ formatDate(pengaduan.created_at) }}</p>
                             </div>
-                             <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium capitalize" :class="getStatusClass(pengaduan.status)">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium capitalize" :class="getStatusClass(pengaduan.status)">
                                 {{ pengaduan.status }}
                             </span>
                         </div>
                         <p class="mt-4 text-gray-700 whitespace-pre-wrap">{{ pengaduan.deskripsi }}</p>
+                        <div class="mt-4 pt-4 border-t grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <h4 class="font-semibold text-gray-600">Kategori:</h4>
+                                <p class="text-gray-800">{{ pengaduan.kategori || 'Tidak ada' }}</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-600">Prioritas:</h4>
+                                <p class="text-gray-800">{{ pengaduan.prioritas || 'Belum ditentukan' }}</p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <h4 class="font-semibold text-gray-600">Lokasi:</h4>
+                                <p class="text-gray-800">{{ pengaduan.alamat || 'Tidak ada' }}</p>
+                                <a v-if="pengaduan.latitude && pengaduan.longitude"
+                                   :href="`https://www.google.com/maps/search/?api=1&query=${pengaduan.latitude},${pengaduan.longitude}`"
+                                   target="_blank"
+                                   class="text-indigo-600 hover:underline text-xs">
+                                   Lihat di Google Maps
+                                </a>
+                            </div>
+                            <!-- DIPERBAIKI: Menambahkan informasi estimasi selesai -->
+                            <div v-if="pengaduan.estimasi_selesai" class="md:col-span-2">
+                                <h4 class="font-semibold text-gray-600">Estimasi Selesai:</h4>
+                                <p class="text-gray-800">{{ formatDate(pengaduan.estimasi_selesai) }}</p>
+                            </div>
+                            <div v-if="pengaduan.keterangan_admin" class="md:col-span-2 bg-blue-50 p-3 rounded-lg">
+                                <h4 class="font-semibold text-gray-600">Keterangan dari Admin:</h4>
+                                <p class="text-gray-800 whitespace-pre-wrap">{{ pengaduan.keterangan_admin }}</p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -106,14 +160,17 @@ const submit = () => {
                                 <img :src="pengaduan.foto_bukti_url" alt="Foto Bukti" class="w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity">
                             </a>
                         </div>
+                        <!-- DIPERBAIKI: Foto penanganan sekarang akan muncul di modal warga -->
                         <div v-if="pengaduan.foto_proses_url" class="bg-white rounded-lg p-4 shadow-sm border">
                             <h4 class="font-semibold text-gray-800 mb-2">Foto Penanganan dari Admin</h4>
-                             <a :href="pengaduan.foto_proses_url" target="_blank">
+                            <a :href="pengaduan.foto_proses_url" target="_blank">
                                 <img :src="pengaduan.foto_proses_url" alt="Foto Proses" class="w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity">
                             </a>
                         </div>
-                         <div v-else class="bg-gray-100 rounded-lg p-4 flex flex-col items-center justify-center text-center">
-                            <svg class="w-10 h-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        <div v-else-if="mode === 'view'" class="bg-gray-100 rounded-lg p-4 flex flex-col items-center justify-center text-center">
+                            <svg class="w-10 h-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
                             <h4 class="font-semibold text-gray-700">Belum Ada Foto Penanganan</h4>
                             <p class="text-sm text-gray-500">Admin belum mengunggah foto proses penanganan.</p>
                         </div>

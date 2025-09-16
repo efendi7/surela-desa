@@ -26,6 +26,7 @@
         "@balkangraph/orgchart.js": "^8.19.43",
         "@heroicons/vue": "^2.2.0",
         "date-fns": "^4.1.0",
+        "lodash-es": "^4.17.21",
         "lucide-vue-next": "^0.542.0",
         "recharts": "^3.1.2",
         "vue-quill": "^1.5.1"
