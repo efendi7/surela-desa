@@ -432,4 +432,3 @@ const dailyTrendChartOptions = {
     font-family: 'Poppins', sans-serif !important;
 }
 </style>
-

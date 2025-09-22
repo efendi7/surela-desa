@@ -1,61 +1,103 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Sistem Pelayanan Desa Digital
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Proyek ini adalah sebuah aplikasi web berbasis **Laravel** dan **Vue.js** (menggunakan Inertia.js) yang dirancang untuk menjadi **Sistem Informasi dan Pelayanan Desa Digital**. Tujuannya adalah untuk memodernisasi dan menyederhanakan layanan administrasi serta komunikasi antara pemerintah desa dengan warganya.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🎯 Tujuan Aplikasi
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Aplikasi ini bertujuan untuk:
+1.  **Meningkatkan Efisiensi:** Mengurangi proses manual dalam pengajuan surat dan layanan administrasi lainnya.
+2.  **Meningkatkan Transparansi:** Memberikan warga kemampuan untuk melacak status pengajuan surat dan pengaduan mereka secara online.
+3.  **Memudahkan Akses Informasi:** Menyediakan platform terpusat untuk informasi penting desa seperti profil, sejarah, visi-misi, dan struktur organisasi.
+4.  **Mempercepat Respons:** Memfasilitasi kanal pengaduan warga yang terstruktur agar dapat ditangani lebih cepat oleh perangkat desa.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## ✨ Fitur Utama
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Aplikasi ini memiliki dua peran utama: **Warga** dan **Admin** (Pemerintah Desa), dengan fitur yang disesuaikan untuk masing-masing peran.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Untuk Publik & Warga
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+* **🌐 Halaman Profil Desa:** Pengunjung dapat melihat informasi umum desa seperti sejarah, visi & misi, dan struktur organisasi.
+* **👤 Manajemen Akun:** Warga dapat mendaftar, login, dan mengelola profil pribadi mereka.
+* **✉️ Pengajuan Surat Online:** Warga dapat mengajukan berbagai jenis surat (misal: Surat Keterangan Tidak Mampu, Surat Pengantar, dll) secara online, mengunggah lampiran yang diperlukan, dan melacak status pengajuannya.
+* **📥 Unduh Surat:** Setelah pengajuan disetujui dan surat selesai dibuat oleh admin, warga dapat mengunduh surat final langsung dari akun mereka.
+* **📢 Sistem Pengaduan:** Warga bisa membuat laporan atau pengaduan mengenai fasilitas atau layanan desa, lengkap dengan bukti foto, dan memantau progres penanganannya melalui timeline.
 
-## Laravel Sponsors
+### Untuk Admin (Pemerintah Desa)
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+* **📊 Dashboard Analitik:** Admin memiliki dashboard utama yang menampilkan statistik penting seperti jumlah pengajuan surat, jumlah pengaduan, dan aktivitas terkini.
+* **🗂️ Manajemen Pengajuan Surat:** Admin dapat melihat, memverifikasi, memproses, dan menyelesaikan semua pengajuan surat dari warga. Admin juga bisa mengunggah surat yang sudah jadi untuk diunduh oleh warga.
+* **🗣️ Manajemen Pengaduan:** Admin dapat meninjau, mengubah status (misalnya: "diterima", "diproses", "selesai"), dan menanggapi pengaduan dari warga, termasuk mengunggah foto sebagai bukti tindak lanjut.
+* **📝 Manajemen Konten Desa:** Admin dapat mengelola konten halaman profil desa, informasi perangkat desa, dan jenis-jenis surat yang tersedia untuk diajukan.
+* **👥 Manajemen Pengguna:** Admin memiliki akses untuk mengelola data pengguna yang terdaftar di sistem.
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## 🛠️ Cara Instalasi
 
-## Contributing
+Berikut adalah langkah-langkah untuk menjalankan proyek ini di lingkungan pengembangan lokal.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Prasyarat
 
-## Code of Conduct
+* PHP 8.2 atau lebih tinggi
+* Composer 2
+* Node.js & NPM
+* Database (misalnya: MySQL, PostgreSQL)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Langkah-langkah
 
-## Security Vulnerabilities
+1.  **Clone *repository* ini:**
+    ```bash
+    git clone [URL_REPOSITORY_ANDA]
+    cd [NAMA_FOLDER_PROYEK]
+    ```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+2.  **Salin file *environment*:**
+    ```bash
+    cp .env.example .env
+    ```
 
-## License
+3.  **Instal dependensi PHP menggunakan Composer:**
+    ```bash
+    composer install
+    ```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+4.  **Instal dependensi JavaScript menggunakan NPM:**
+    ```bash
+    npm install
+    ```
+
+5.  ***Generate* kunci aplikasi Laravel:**
+    ```bash
+    php artisan key:generate
+    ```
+
+6.  **Konfigurasi Database:**
+    Buka file `.env` dan sesuaikan pengaturan database Anda (DB_DATABASE, DB_USERNAME, DB_PASSWORD).
+
+7.  **Jalankan Migrasi Database:**
+    Perintah ini akan membuat semua tabel yang dibutuhkan dalam database Anda.
+    ```bash
+    php artisan migrate
+    ```
+    *Opsional: Jika proyek memiliki data awal, jalankan seeder:*
+    ```bash
+    php artisan db:seed
+    ```
+
+8.  **Jalankan *Vite development server*:**
+    Buka terminal baru dan jalankan perintah ini untuk meng-*compile* aset *front-end*.
+    ```bash
+    npm run dev
+    ```
+
+9.  **Jalankan *server* Laravel:**
+    Di terminal utama Anda, jalankan *server* pengembangan Laravel.
+    ```bash
+    php artisan serve
+    ```
+
+Sekarang, aplikasi sudah dapat diakses melalui `http://127.0.0.1:8000`.

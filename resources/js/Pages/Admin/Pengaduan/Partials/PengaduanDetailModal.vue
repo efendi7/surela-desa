@@ -14,56 +14,53 @@ const props = defineProps({
     pengaduan: { type: Object, default: null },
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'updated']);
 
-// --- FORMS ---
-const detailsForm = useForm({
+// --- GABUNGKAN FORM MENJADI SATU ---
+const form = useForm({
     status: '',
     prioritas: '',
     keterangan_admin: '',
     estimasi_selesai: '',
+    foto_proses: null,
+    _method: 'patch', // Teknik untuk mengirim file via metode POST tapi dianggap PATCH oleh Laravel
 });
 
-const photoForm = useForm({
-    foto_proses: null,
-});
 
 // --- WATCHER ---
 watch(() => props.pengaduan, (newVal) => {
     if (newVal) {
-        detailsForm.defaults({
+        form.defaults({
             status: newVal.status,
             prioritas: newVal.prioritas,
             keterangan_admin: newVal.keterangan_admin || '',
             estimasi_selesai: newVal.estimasi_selesai || '',
         });
-        detailsForm.reset();
+        form.reset();
+        form.clearErrors();
     }
 }, { immediate: true, deep: true });
 
-// --- METHODS ---
-const updateDetails = () => {
+// --- BUAT SATU METHOD SUBMIT ---
+const submitForm = () => {
     if (!props.pengaduan) return;
-    detailsForm.patch(route('admin.pengaduan.updateDetails', props.pengaduan.id), {
+
+    form.post(route('admin.pengaduan.updateDetails', props.pengaduan.id), {
         preserveScroll: true,
-        onSuccess: () => {
-            // Modal tetap terbuka untuk melihat perubahan
+        onSuccess: (page) => {
+            const fileInput = document.getElementById('foto_proses_input');
+            if (fileInput) {
+                fileInput.value = '';
+            }
+            form.foto_proses = null;
+            
+            const updatedData = page.props.flash.updatedPengaduan;
+            if (updatedData) {
+                emit('updated', updatedData);
+            }
+            emit('close'); 
         },
     });
-};
-
-const uploadProses = () => {
-    if (!props.pengaduan) return;
-    photoForm.post(route('admin.pengaduan.upload.proses', props.pengaduan.id), {
-        preserveScroll: true,
-        onSuccess: () => {
-           photoForm.reset();
-        },
-    });
-};
-
-const handleFileChange = (event) => {
-    photoForm.foto_proses = event.target.files[0];
 };
 
 const closeModal = () => emit('close');
@@ -82,7 +79,7 @@ const getStatusBadgeClass = (status) => {
 const getPrioritasBadgeClass = (prioritas) => {
     const classes = {
         'Rendah': 'bg-green-100 text-green-800',
-        'Sedang': 'bg-yellow-100 text-yellow-800', 
+        'Sedang': 'bg-yellow-100 text-yellow-800',
         'Tinggi': 'bg-orange-100 text-orange-800',
         'Darurat': 'bg-red-100 text-red-800'
     };
@@ -92,8 +89,7 @@ const getPrioritasBadgeClass = (prioritas) => {
 
 <template>
     <Modal :show="show" @close="closeModal" max-width="4xl">
-        <div v-if="pengaduan" class="flex flex-col max-h-[90vh] bg-gray-50 rounded-2xl overflow-hidden shadow-xl">
-            <!-- Header (fix) -->
+        <div v-if="pengaduan" class="flex flex-col max-h-[90vh] bg-gray-50 rounded-lg overflow-hidden shadow-xl">
             <header class="px-6 py-4 border-b bg-white">
                 <h2 class="text-lg font-medium text-gray-900">
                     Detail Pengaduan: {{ pengaduan.judul }}
@@ -103,35 +99,32 @@ const getPrioritasBadgeClass = (prioritas) => {
                 </p>
             </header>
             
-            <!-- Body (scrollable) -->
             <div class="flex-1 overflow-y-auto p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     
-                    <!-- Kolom Kiri - Detail Pengaduan -->
                     <div class="space-y-6">
-                        <!-- Informasi Pelapor -->
                         <section class="p-4 bg-white rounded-lg shadow-sm">
                             <h3 class="text-base font-semibold text-gray-800 mb-3">Informasi Pelapor</h3>
-                            <div class="text-sm space-y-2">
-                                <div class="flex justify-between">
+                            <div class="text-sm divide-y divide-gray-200">
+                                <div class="flex justify-between py-2">
                                     <span class="text-gray-500">Nama</span>
                                     <span class="font-medium text-gray-800">{{ pengaduan.user.name }}</span>
                                 </div>
-                                <div class="flex justify-between">
+                                <div class="flex justify-between py-2">
                                     <span class="text-gray-500">NIK</span>
                                     <span class="font-medium text-gray-800">{{ pengaduan.user.nik || '-' }}</span>
                                 </div>
-                                <div class="flex justify-between">
+                                <div class="flex justify-between py-2">
                                     <span class="text-gray-500">Kategori</span>
                                     <span class="font-medium text-gray-800">{{ pengaduan.kategori || 'Umum' }}</span>
                                 </div>
-                                <div class="flex justify-between items-center">
+                                <div class="flex justify-between items-center py-2">
                                     <span class="text-gray-500">Status</span>
                                     <span :class="getStatusBadgeClass(pengaduan.status)" class="px-2 py-1 rounded-full text-xs font-medium">
                                         {{ pengaduan.status }}
                                     </span>
                                 </div>
-                                <div class="flex justify-between items-center">
+                                <div class="flex justify-between items-center py-2">
                                     <span class="text-gray-500">Prioritas</span>
                                     <span :class="getPrioritasBadgeClass(pengaduan.prioritas)" class="px-2 py-1 rounded-full text-xs font-medium">
                                         {{ pengaduan.prioritas }}
@@ -140,114 +133,93 @@ const getPrioritasBadgeClass = (prioritas) => {
                             </div>
                         </section>
 
-                        <!-- Detail Pengaduan -->
                         <section class="p-4 bg-white rounded-lg shadow-sm">
                             <h3 class="text-base font-semibold text-gray-800 mb-3">Detail Pengaduan</h3>
-                            <div class="space-y-3">
-                                <div>
-                                    <h4 class="font-medium text-gray-600 mb-1">Lokasi</h4>
+                            <div class="space-y-4 divide-y divide-gray-200">
+                                <div class="pt-3">
+                                    <h4 class="font-medium text-gray-600 text-sm mb-1">Lokasi</h4>
                                     <p class="text-sm text-gray-800">{{ pengaduan.alamat || 'Tidak ada detail alamat.' }}</p>
                                 </div>
-                                <div>
-                                    <h4 class="font-medium text-gray-600 mb-1">Deskripsi Masalah</h4>
+                                <div class="pt-3">
+                                    <h4 class="font-medium text-gray-600 text-sm mb-1">Deskripsi Masalah</h4>
                                     <p class="text-sm text-gray-800 whitespace-pre-wrap">{{ pengaduan.deskripsi }}</p>
                                 </div>
-                                <div>
-                                    <h4 class="font-medium text-gray-600 mb-1">Penanggung Jawab</h4>
+                                <div class="pt-3">
+                                    <h4 class="font-medium text-gray-600 text-sm mb-1">Penanggung Jawab</h4>
                                     <p class="text-sm text-gray-800">{{ pengaduan.admin ? pengaduan.admin.name : 'Belum ditugaskan' }}</p>
                                 </div>
                             </div>
                         </section>
 
-                        <!-- Dokumentasi -->
                         <section class="p-4 bg-white rounded-lg shadow-sm">
                             <h3 class="text-base font-semibold text-gray-800 mb-3">Dokumentasi</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <!-- Foto Bukti Warga -->
-                                <div>
-                                    <h4 class="font-medium text-gray-600 mb-2">Foto Bukti Warga</h4>
-                                    <a :href="pengaduan.foto_bukti_url" target="_blank" class="block">
-                                        <img :src="pengaduan.foto_bukti_url" class="rounded-lg w-full h-32 object-cover border hover:opacity-90 transition" alt="Foto Bukti">
-                                    </a>
+                            <div class="space-y-3">
+                                <div v-if="pengaduan.foto_bukti" class="flex items-center p-3 border rounded-lg hover:bg-gray-50 transition">
+                                    <svg class="w-5 h-5 flex-shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                    <div class="ml-3 flex-grow overflow-hidden">
+                                        <div class="text-sm font-medium text-gray-700">Foto Bukti Warga</div>
+                                    </div>
+                                    <a :href="route('admin.pengaduan.foto.view', { pengaduan: pengaduan.id, type: 'bukti' })" target="_blank" class="ml-4 text-xs font-semibold text-blue-600 hover:underline">Lihat</a>
                                 </div>
-                                <!-- Foto Proses -->
-                                <div v-if="pengaduan.foto_proses_url">
-                                    <h4 class="font-medium text-gray-600 mb-2">Foto Bukti Penanganan</h4>
-                                    <a :href="pengaduan.foto_proses_url" target="_blank" class="block">
-                                        <img :src="pengaduan.foto_proses_url" class="rounded-lg w-full h-32 object-cover border hover:opacity-90 transition" alt="Foto Proses">
-                                    </a>
+                                <div v-if="pengaduan.foto_proses" class="flex items-center p-3 border rounded-lg hover:bg-gray-50 transition">
+                                    <svg class="w-5 h-5 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                    <div class="ml-3 flex-grow overflow-hidden">
+                                        <div class="text-sm font-medium text-gray-700">Foto Bukti Penanganan</div>
+                                    </div>
+                                    <a :href="route('admin.pengaduan.foto.view', { pengaduan: pengaduan.id, type: 'proses' })"  target="_blank" class="ml-4 text-xs font-semibold text-green-600 hover:underline">Lihat</a>
                                 </div>
+                                <div v-if="!pengaduan.foto_bukti && !pengaduan.foto_proses" class="text-center p-4 border-2 border-dashed rounded-lg text-sm text-gray-500">
+                                Tidak ada dokumentasi foto.
+                            </div>
                             </div>
                         </section>
                     </div>
 
-                    <!-- Kolom Kanan - Admin Actions -->
-                    <div class="space-y-6">
-                        <!-- Form Update Details -->
-                        <div class="p-4 bg-white rounded-lg shadow-sm space-y-4">
-                            <h3 class="text-base font-semibold text-gray-800">Tindakan Admin</h3>
-                            
-                            <div>
-                                <InputLabel for="status" value="Ubah Status" />
-                                <select v-model="detailsForm.status" id="status" 
-                                    class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                    <option value="Dikirim">Dikirim</option>
-                                    <option value="Diterima">Diterima</option>
-                                    <option value="Diproses">Diproses</option>
-                                    <option value="Selesai">Selesai</option>
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <InputLabel for="prioritas" value="Set Prioritas" />
-                                <select v-model="detailsForm.prioritas" id="prioritas" 
-                                    class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                    <option value="Rendah">Rendah</option>
-                                    <option value="Sedang">Sedang</option>
-                                    <option value="Tinggi">Tinggi</option>
-                                    <option value="Darurat">Darurat</option>
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <InputLabel for="estimasi_selesai" value="Estimasi Selesai" />
-                                <TextInput v-model="detailsForm.estimasi_selesai" id="estimasi_selesai" type="date" 
-                                    class="mt-1 block w-full" />
-                            </div>
-                            
-                            <div>
-                                <InputLabel for="keterangan_admin" value="Keterangan Admin (Opsional)" />
-                                <TextArea v-model="detailsForm.keterangan_admin" id="keterangan_admin" 
-                                    class="mt-1 block w-full" rows="4" 
-                                    placeholder="Berikan catatan mengenai pengaduan ini..." />
+                    <div class="p-4 bg-white rounded-lg shadow-sm space-y-4 sticky top-0">
+                        <h3 class="text-base font-semibold text-gray-800">Tindakan Admin</h3>
+                        <div>
+                            <InputLabel for="status" value="Ubah Status" />
+                            <select v-model="form.status" id="status" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                <option>Dikirim</option>
+                                <option>Diterima</option>
+                                <option>Diproses</option>
+                                <option>Selesai</option>
+                            </select>
+                        </div>
+                        <div>
+                            <InputLabel for="prioritas" value="Set Prioritas" />
+                            <select v-model="form.prioritas" id="prioritas" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                <option>Rendah</option>
+                                <option>Sedang</option>
+                                <option>Tinggi</option>
+                                <option>Darurat</option>
+                            </select>
+                        </div>
+                        <div>
+                            <InputLabel for="estimasi_selesai" value="Estimasi Selesai" />
+                            <TextInput v-model="form.estimasi_selesai" id="estimasi_selesai" type="date" class="mt-1 block w-full" />
+                        </div>
+                        <div>
+                            <InputLabel for="foto_proses_input" value="Unggah/Ganti Foto Penanganan" />
+                             <input type="file" @input="form.foto_proses = $event.target.files[0]" id="foto_proses_input" accept="image/*"
+                                class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+                            <progress v-if="form.progress" :value="form.progress.percentage" max="100" class="w-full mt-2 h-2 rounded-full overflow-hidden"></progress>
+                            <div v-if="form.errors.foto_proses" class="text-red-500 text-sm mt-1">
+                                {{ form.errors.foto_proses }}
                             </div>
                         </div>
-
-                        <!-- Form Upload Foto -->
-                        <div class="p-4 bg-white rounded-lg shadow-sm space-y-4">
-                            <h3 class="text-base font-semibold text-gray-800">Unggah Foto Penanganan</h3>
-                            
-                            <div>
-                                <input type="file" @change="handleFileChange" accept="image/*"
-                                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
-                                <div v-if="photoForm.errors.foto_proses" class="text-red-500 text-sm mt-1">
-                                    {{ photoForm.errors.foto_proses }}
-                                </div>
-                            </div>
-                            
-                            <PrimaryButton @click="uploadProses" :disabled="photoForm.processing || !photoForm.foto_proses" class="w-full justify-center">
-                                {{ photoForm.processing ? 'Mengunggah...' : 'Unggah Foto' }}
-                            </PrimaryButton>
+                        <div>
+                            <InputLabel for="keterangan_admin" value="Keterangan Admin (Opsional)" />
+                            <TextArea v-model="form.keterangan_admin" id="keterangan_admin" class="mt-1 block w-full" rows="4" placeholder="Berikan catatan mengenai pengaduan ini..." />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Footer (fix) - DIPINDAHKAN TOMBOL SIMPAN KE SINI -->
-            <footer class="flex justify-between px-6 py-4 border-t bg-white">
+            <footer class="flex justify-between items-center px-6 py-4 border-t bg-white">
                 <SecondaryButton @click="closeModal">Tutup</SecondaryButton>
-                <PrimaryButton @click="updateDetails" :disabled="detailsForm.processing" class="justify-center">
-                    {{ detailsForm.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}
+                <PrimaryButton @click="submitForm" :disabled="form.processing" class="justify-center">
+                    {{ form.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}
                 </PrimaryButton>
             </footer>
         </div>

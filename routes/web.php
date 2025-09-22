@@ -9,7 +9,7 @@ use App\Http\Controllers\{
     PengajuanSuratController,
     PublicProfilController,
     DashboardController as WargaDashboardController,
-    PengaduanController,
+    WargaPengaduanController, // UPDATED: Menggunakan WargaPengaduanController
 };
 
 use App\Http\Controllers\Admin\{
@@ -18,7 +18,8 @@ use App\Http\Controllers\Admin\{
     ProsesPengajuanController,
     UserController,
     DashboardController as AdminDashboardController,
-    PerangkatDesaController
+    PerangkatDesaController,
+    AdminPengaduanController, // ADDED: Controller baru untuk admin
 };
 
 /*
@@ -81,9 +82,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/riwayat/{pengajuan}', 'destroyRiwayat')->name('destroy-riwayat');
     });
 
-    Route::controller(PengaduanController::class)->prefix('pengaduan')->name('pengaduan.')->group(function () {
+    // UPDATED: Warga Routes - Pengaduan menggunakan WargaPengaduanController
+    Route::controller(WargaPengaduanController::class)->prefix('pengaduan')->name('pengaduan.')->group(function () {
         Route::get('/', 'index')->name('index'); // Menampilkan daftar pengaduan warga
         Route::post('/', 'store')->name('store'); // Menyimpan pengaduan baru
+        Route::get('/{pengaduan}', 'show')->name('show'); // Menampilkan detail pengaduan
+        Route::delete('/{pengaduan}', 'destroy')->name('destroy'); // Menghapus pengaduan
+        Route::get('/{pengaduan}/foto/{type}', 'viewFoto')
+            ->name('foto.view')
+            ->where('type', 'bukti|proses'); // Melihat foto
+        Route::get('/{pengaduan}/download/{type}', 'downloadFoto')
+            ->name('foto.download')
+            ->where('type', 'bukti|proses'); // Download foto
+        // Di routes/web.php, tambahkan di dalam group WargaPengaduanController
+        Route::get('/{pengaduan}/timeline', 'getTimeline')->name('timeline');
     });
 
     // Rute ini tetap di sini karena dapat diakses oleh warga setelah surat selesai
@@ -120,37 +132,44 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\IsAdmin::class])
         // Jenis Surat Management
         Route::resource('jenis-surat', JenisSuratController::class)->except(['create', 'edit', 'show']);
 
-       // routes/web.php - SEBELUM
+        // Perbaikan route untuk konsistensi naming
 Route::controller(ProsesPengajuanController::class)
     ->prefix('proses-pengajuan')
-    ->name('proses.') // <-- UBAH INI
+    ->name('proses.') 
     ->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/riwayat', 'riwayat')->name('riwayat');
         Route::patch('/{pengajuanSurat}', 'update')->name('update');
         Route::delete('/{pengajuan}', 'destroy')->name('destroy');
         Route::get('/{pengajuan}/generate-surat', 'generateSurat')
-            ->name('generate-surat'); // <-- DAN UBAH INI
+            ->name('generate-surat');
         Route::post('/{pengajuan}/upload-file', 'uploadFile')->name('upload-file');
-        Route::delete('/{pengajuan}/hapus-file', 'hapusFile')->name('hapus-file');
-        Route::post('/{pengajuan}/konfirmasi-final', 'konfirmasiFinal')->name('konfirmasi-final');
+        Route::delete('/{pengajuan}/hapus-file', 'hapusFile')->name('hapusFile'); // Konsisten dengan JS
+        Route::post('/{pengajuan}/konfirmasi-final', 'konfirmasiFinal')->name('konfirmasiFinal'); // Konsisten dengan JS
     });
-
         // User Management
         Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);
 
-        Route::controller(PengaduanController::class)->prefix('pengaduan')->name('pengaduan.')->group(function () {
-    Route::get('/', 'adminIndex')->name('index'); // admin.pengaduan.index
-    Route::get('/riwayat', 'adminRiwayat')->name('riwayat'); // admin.pengaduan.riwayat  
-    Route::get('/{pengaduan}', 'adminShow')->name('show'); // admin.pengaduan.show
-    Route::patch('/{pengaduan}/status', 'adminUpdateStatus')->name('update.status'); // admin.pengaduan.update.status
-    
-    // PERBAIKAN: Konsisten dengan nama method di controller
-    Route::post('/{pengaduan}/upload-proses', 'adminUploadProses')->name('upload.proses'); // admin.pengaduan.upload.proses
-    
-    // PERBAIKAN: Hapus /admin dari path karena sudah dalam group prefix admin
-    Route::patch('/{pengaduan}/update-details', 'adminUpdateDetails')->name('updateDetails'); // admin.pengaduan.updateDetails
-});
+        // UPDATED: Admin Routes - Pengaduan menggunakan AdminPengaduanController
+        Route::controller(AdminPengaduanController::class)->prefix('pengaduan')->name('pengaduan.')->group(function () {
+            Route::get('/', 'index')->name('index'); // admin.pengaduan.index
+            Route::get('/riwayat', 'riwayat')->name('riwayat'); // admin.pengaduan.riwayat  
+            Route::get('/{pengaduan}', 'show')->name('show'); // admin.pengaduan.show
+            Route::delete('/{pengaduan}', 'destroy')->name('destroy'); // admin.pengaduan.destroy
+            
+            // Status dan Detail Updates
+            Route::patch('/{pengaduan}/status', 'updateStatus')->name('update.status'); // admin.pengaduan.update.status
+            Route::patch('/{pengaduan}/update-details', 'updateDetails')->name('updateDetails'); // admin.pengaduan.updateDetails
+            
+            // File Management
+            Route::post('/{pengaduan}/upload-proses', 'uploadProses')->name('upload.proses'); // admin.pengaduan.upload.proses
+            Route::get('/{pengaduan}/foto/{type}', 'viewFoto')
+                ->name('foto.view') 
+                ->where('type', 'bukti|proses'); // Melihat foto
+            Route::get('/{pengaduan}/download/{type}', 'downloadFoto')
+                ->name('foto.download')
+                ->where('type', 'bukti|proses'); // Download foto
+        });
 
         // API Routes for Admin
         Route::controller(AdminDashboardController::class)->prefix('api')->name('api.')->group(function () {

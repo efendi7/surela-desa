@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { router } from '@inertiajs/vue3'
 
 // Props
 defineProps({
@@ -9,7 +10,7 @@ defineProps({
     }
 })
 
-// Emits
+// Emits - tambahkan emit untuk konfirmasi final jika belum ada
 defineEmits([
     'open-detail',
     'trigger-upload', 
@@ -89,6 +90,30 @@ const handleScroll = () => {
         calculateDropdownPosition()
     }
 }
+
+// Fungsi untuk konfirmasi final dengan Inertia
+// const handleKonfirmasiFinal = (item) => {
+//     // Tutup dropdown dulu
+//     closeDropdown()
+
+//     // Kirim request konfirmasi final
+//     router.post(route('admin.proses.konfirmasiFinal', { pengajuan: item.id }), {}, {
+//         preserveScroll: true,
+//         preserveState: true,
+//         onSuccess: () => {
+//             // 🔹 Auto reload props inertia setelah sukses
+//             router.visit(window.location.pathname, { preserveScroll: true })
+//             // atau pakai router.reload() jika pakai inertia >= 1.3
+//             // router.reload({ only: ['pengajuan'] })
+
+//             console.log('File berhasil dikonfirmasi sebagai final')
+//         },
+//         onError: (errors) => {
+//             console.error('Konfirmasi final gagal:', errors)
+//         }
+//     })
+// }
+
 
 // Mount/unmount event listeners
 onMounted(() => {
@@ -198,7 +223,7 @@ onUnmounted(() => {
                     <!-- Divider before final action -->
                     <div class="border-t border-gray-100 my-2"></div>
 
-                    <!-- Confirm Selesai -->
+                    <!-- Confirm Selesai - UPDATE: Gunakan handleKonfirmasiFinal -->
                     <div class="mx-2 my-1">
                         <button @click="$emit('confirm-selesai', item); closeDropdown()"
                                 :disabled="!item.file_final"

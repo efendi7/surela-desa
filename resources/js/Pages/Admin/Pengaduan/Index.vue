@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, Link } from '@inertiajs/vue3'; // 1. TAMBAH: Impor Link
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PengaduanFilter from './Partials/PengaduanFilter.vue';
 import PengaduanTable from './Partials/PengaduanTable.vue';
@@ -62,18 +62,37 @@ const closeModal = () => {
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <FlashMessage />
                 
+                <!-- 2. TAMBAH: Navigation toggle untuk pindah halaman -->
+                <div class="mb-4 flex space-x-2">
+                    <Link :href="route('admin.pengaduan.index')"
+                          class="px-4 py-2 rounded-md text-sm font-medium"
+                          :class="{ 'bg-gray-900 text-white': route().current('admin.pengaduan.index'), 'bg-white text-gray-700 hover:bg-gray-50': !route().current('admin.pengaduan.index') }">
+                        Pengaduan Aktif
+                    </Link>
+                    <Link :href="route('admin.pengaduan.riwayat')"
+                          class="px-4 py-2 rounded-md text-sm font-medium"
+                          :class="{ 'bg-gray-900 text-white': route().current('admin.pengaduan.riwayat'), 'bg-white text-gray-700 hover:bg-gray-50': !route().current('admin.pengaduan.riwayat') }">
+                        Riwayat Pengaduan
+                    </Link>
+                </div>
+                
                 <PengaduanFilter v-model="localFilters" />
                 
                 <PengaduanTable :pengaduan="props.pengaduan" @open-detail="openDetailModal" />
 
-                <Pagination class="mt-6" :links="props.pengaduan.links" />
+                <Pagination 
+                    class="mt-6" 
+                    :current-page="props.pengaduan.current_page"
+                    :total-pages="props.pengaduan.last_page"
+                    :per-page="props.pengaduan.per_page"
+                    :total-items="props.pengaduan.total"
+                    :links="props.pengaduan.links" />
             </div>
         </div>
 
         <PengaduanDetailModal
             :show="showDetailModal"
             :pengaduan="selectedPengaduan"
-            @close="closeModal"
-        />
+            @close="closeModal" />
     </AuthenticatedLayout>
 </template>
