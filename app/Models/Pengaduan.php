@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class Pengaduan extends Model
 {
@@ -73,4 +74,33 @@ class Pengaduan extends Model
         // Relasi ini menunjuk ke model User, menggunakan foreign key 'admin_id'
         return $this->belongsTo(User::class, 'admin_id');
     }
+
+      public function getFotoBuktiUrlAttribute()
+    {
+        if ($this->foto_bukti) {
+            // Storage::url() akan otomatis membuat URL yang benar
+            return Storage::url($this->foto_bukti);
+        }
+        // Berikan gambar placeholder jika tidak ada foto
+        return 'https://placehold.co/600x400?text=No+Image';
+    }
+    
+    /**
+     * [TAMBAHKAN METHOD INI JUGA]
+     * Lakukan hal yang sama untuk foto_proses agar konsisten.
+     */
+    public function getFotoProsesUrlAttribute()
+    {
+        if ($this->foto_proses) {
+            return Storage::url($this->foto_proses);
+        }
+        return null; // Atau return placeholder jika perlu
+    }
+    
+    /**
+     * [TAMBAHKAN INI]
+     * Beritahu Laravel untuk selalu menyertakan atribut custom ini saat model diubah ke array/JSON.
+     */
+    protected $appends = ['foto_bukti_url', 'foto_proses_url'];
+
 }

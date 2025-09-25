@@ -45,16 +45,17 @@ class WargaPengaduanController extends Controller
             'kategori' => 'nullable|string|max:100',
         ]);
 
-        // Pastikan direktori ada
-        Storage::makeDirectory('public/pengaduan/bukti');
-        
-        $pathBukti = $request->file('foto_bukti')->store('public/pengaduan/bukti');
+         $pathBukti = null; // Inisialisasi path
+    if ($request->hasFile('foto_bukti')) {
+        // [UBAH INI] Gunakan dua argumen untuk path dan disk
+        $pathBukti = $request->file('foto_bukti')->store('pengaduan/bukti', 'public');
+    }
 
-        Pengaduan::create([
-            'user_id' => Auth::id(),
-            'judul' => $validated['judul'],
-            'deskripsi' => $validated['deskripsi'],
-            'foto_bukti' => $pathBukti,
+    Pengaduan::create([
+        'user_id' => Auth::id(),
+        'judul' => $validated['judul'],
+        'deskripsi' => $validated['deskripsi'],
+        'foto_bukti' => $pathBukti, // Simpan path yang sudah benar
             'alamat' => $validated['alamat'],
             'latitude' => $validated['latitude'],
             'longitude' => $validated['longitude'],

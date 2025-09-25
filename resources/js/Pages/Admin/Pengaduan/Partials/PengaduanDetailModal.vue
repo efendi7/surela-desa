@@ -152,27 +152,33 @@ const getPrioritasBadgeClass = (prioritas) => {
                         </section>
 
                         <section class="p-4 bg-white rounded-lg shadow-sm">
-                            <h3 class="text-base font-semibold text-gray-800 mb-3">Dokumentasi</h3>
-                            <div class="space-y-3">
-                                <div v-if="pengaduan.foto_bukti" class="flex items-center p-3 border rounded-lg hover:bg-gray-50 transition">
-                                    <svg class="w-5 h-5 flex-shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                                    <div class="ml-3 flex-grow overflow-hidden">
-                                        <div class="text-sm font-medium text-gray-700">Foto Bukti Warga</div>
-                                    </div>
-                                    <a :href="route('admin.pengaduan.foto.view', { pengaduan: pengaduan.id, type: 'bukti' })" target="_blank" class="ml-4 text-xs font-semibold text-blue-600 hover:underline">Lihat</a>
-                                </div>
-                                <div v-if="pengaduan.foto_proses" class="flex items-center p-3 border rounded-lg hover:bg-gray-50 transition">
-                                    <svg class="w-5 h-5 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                                    <div class="ml-3 flex-grow overflow-hidden">
-                                        <div class="text-sm font-medium text-gray-700">Foto Bukti Penanganan</div>
-                                    </div>
-                                    <a :href="route('admin.pengaduan.foto.view', { pengaduan: pengaduan.id, type: 'proses' })"  target="_blank" class="ml-4 text-xs font-semibold text-green-600 hover:underline">Lihat</a>
-                                </div>
-                                <div v-if="!pengaduan.foto_bukti && !pengaduan.foto_proses" class="text-center p-4 border-2 border-dashed rounded-lg text-sm text-gray-500">
-                                Tidak ada dokumentasi foto.
-                            </div>
-                            </div>
-                        </section>
+    <h3 class="text-base font-semibold text-gray-800 mb-3">Dokumentasi</h3>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+            <h4 class="text-sm font-medium text-gray-600 mb-2">Foto Bukti Warga</h4>
+            <div v-if="pengaduan.foto_bukti_url" class="aspect-video bg-gray-100 rounded-lg overflow-hidden border">
+                <a :href="pengaduan.foto_bukti_url" target="_blank">
+                    <img :src="pengaduan.foto_bukti_url" alt="Foto Bukti" class="w-full h-full object-cover hover:scale-105 transition-transform">
+                </a>
+            </div>
+            <div v-else class="aspect-video bg-gray-100 rounded-lg flex items-center justify-center text-sm text-gray-500 border-2 border-dashed">
+                Tidak ada foto bukti.
+            </div>
+        </div>
+        
+        <div>
+            <h4 class="text-sm font-medium text-gray-600 mb-2">Foto Penanganan (Admin)</h4>
+            <div v-if="pengaduan.foto_proses_url" class="aspect-video bg-gray-100 rounded-lg overflow-hidden border">
+                 <a :href="pengaduan.foto_proses_url" target="_blank">
+                    <img :src="pengaduan.foto_proses_url" alt="Foto Proses" class="w-full h-full object-cover hover:scale-105 transition-transform">
+                </a>
+            </div>
+            <div v-else class="aspect-video bg-gray-100 rounded-lg flex items-center justify-center text-sm text-gray-500 border-2 border-dashed">
+                Belum ada foto penanganan.
+            </div>
+        </div>
+    </div>
+</section>
                     </div>
 
                     <div class="p-4 bg-white rounded-lg shadow-sm space-y-4 sticky top-0">

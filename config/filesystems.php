@@ -31,12 +31,13 @@ return [
     'disks' => [
 
         'local' => [
-            'driver' => 'local',
-            'root' => storage_path('app/private'),
-            'serve' => true,
-            'throw' => false,
-            'report' => false,
-        ],
+    'driver' => 'local',
+    // Kembalikan ke pengaturan default yang hanya mengarah ke 'app'
+    'root' => storage_path('app'), 
+    'serve' => true,
+    'throw' => false,
+    'report' => false,
+],
 
         'public' => [
             'driver' => 'local',
