@@ -6,6 +6,7 @@ import UMKMList from './Components/UMKMList.vue';
 import UMKMFormModal from './Components/UMKMFormModal.vue';
 import DeleteModal from './Components/DeleteModal.vue';
 import StatsCard from './Components/StatsCard.vue';
+import Pagination from '@/Components/Pagination.vue';
 
 // Props
 const props = defineProps({
@@ -63,6 +64,10 @@ const openCreateModal = () => {
   createForm.clearErrors();
 };
 
+const closeCreateModal = () => {
+  showCreateModal.value = false;
+};
+
 const openEditModal = (umkm) => {
   umkmToEdit.value = umkm;
   Object.assign(editForm, {
@@ -80,16 +85,28 @@ const openEditModal = (umkm) => {
   editForm.clearErrors();
 };
 
+const closeEditModal = () => {
+  showEditModal.value = false;
+  umkmToEdit.value = null;
+};
+
 const confirmDeletion = (umkm) => {
   umkmToDelete.value = umkm;
   confirmingDeletion.value = true;
+};
+
+const closeDeleteModal = () => {
+  confirmingDeletion.value = false;
+  umkmToDelete.value = null;
 };
 
 // Form Submission
 const submitCreate = () => {
   createForm.post(route('warga.umkm.store'), {
     preserveScroll: true,
-    onSuccess: () => showCreateModal.value = false,
+    onSuccess: () => {
+      closeCreateModal();
+    },
   });
 };
 
@@ -97,8 +114,7 @@ const submitEdit = () => {
   editForm.post(route('warga.umkm.update', umkmToEdit.value.id), {
     preserveScroll: true,
     onSuccess: () => {
-      showEditModal.value = false;
-      umkmToEdit.value = null;
+      closeEditModal();
     },
   });
 };
@@ -107,8 +123,7 @@ const deleteUmkm = () => {
   deleteForm.delete(route('warga.umkm.destroy', umkmToDelete.value.id), {
     preserveScroll: true,
     onSuccess: () => {
-      confirmingDeletion.value = false;
-      umkmToDelete.value = null;
+      closeDeleteModal();
       router.visit(route('warga.umkm.index'), { method: 'get' });
     },
   });
@@ -171,8 +186,9 @@ const deleteUmkm = () => {
       title="Daftarkan UMKM Baru"
       submit-text="Daftarkan UMKM"
       @submit="submitCreate"
-      @close="() => showCreateModal.value = false"
+      @close="closeCreateModal"
     />
+    
     <UMKMFormModal
       :show="showEditModal"
       :form="editForm"
@@ -181,13 +197,14 @@ const deleteUmkm = () => {
       title="Edit UMKM"
       submit-text="Simpan Perubahan"
       @submit="submitEdit"
-      @close="() => showEditModal.value = false"
+      @close="closeEditModal"
     />
+    
     <DeleteModal
       :show="confirmingDeletion"
       :umkm="umkmToDelete"
       @confirm="deleteUmkm"
-      @close="() => confirmingDeletion.value = false"
+      @close="closeDeleteModal"
     />
   </AuthenticatedLayout>
 </template>

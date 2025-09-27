@@ -11,6 +11,10 @@ use App\Http\Controllers\{
     WargaPengaduanController,
     WargaUmkmController,
     PublicUmkmController,
+    PublicBeritaController,
+    PublicPengumumanController, 
+    NotifikasiController,
+    
 };
 
 use App\Http\Controllers\Admin\{
@@ -22,6 +26,7 @@ use App\Http\Controllers\Admin\{
     PerangkatDesaController,
     AdminPengaduanController,
     AdminUmkmController,
+    BeritaController,
 };
 
 /*
@@ -40,11 +45,23 @@ Route::get('/profil/{page}', [PublicProfilController::class, 'show'])
     ->where('page', 'sejarah|visi-misi|struktur-organisasi')
     ->name('profil.show');
 
-Route::get('/umkm', [PublicUmkmController::class, 'index'])->name('umkm.public.index');
-Route::get('/umkm/{umkm}', [PublicUmkmController::class, 'show'])
-    ->where('umkm', '[0-9]+')
-    ->name('umkm.public.show');
+// Public UMKM routes
+Route::prefix('umkm')->name('public.umkm.')->group(function () {
+    Route::get('/', [PublicUmkmController::class, 'index'])->name('index');
+    Route::get('/{umkm}/detail', [PublicUmkmController::class, 'getDetail'])->name('getDetail');
+    Route::get('/statistics', [PublicUmkmController::class, 'statistics'])->name('statistics');
+});
 
+// Public Berita Routes
+Route::controller(PublicBeritaController::class)->prefix('berita')->name('public.berita.')->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::get('/{slug}', 'show')->name('show');
+    
+});
+Route::controller(PublicPengumumanController::class)->prefix('pengumuman')->name('public.pengumuman.')->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::get('/{slug}', 'show')->name('show');
+});
 /*
 |--------------------------------------------------------------------------
 | Authenticated Routes (Warga)
@@ -95,6 +112,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
          ->name('pengajuan.download-final');
 });
 
+// Notifikasi Routes
+Route::controller(NotifikasiController::class)->prefix('notifikasi')->name('notifikasi.')->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::patch('/mark-as-read', 'markAsRead')->name('read');
+});
+
 /*
 |--------------------------------------------------------------------------
 | Admin Routes
@@ -130,6 +153,9 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\IsAdmin::class])
 
         Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);
 
+        // Admin Berita CRUD
+Route::resource('berita', BeritaController::class)->except(['show']);
+
         Route::controller(AdminPengaduanController::class)->prefix('pengaduan')->name('pengaduan.')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/riwayat', 'riwayat')->name('riwayat');
@@ -154,7 +180,9 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\IsAdmin::class])
             Route::get('/statistics', 'getStatistics')->name('statistics');
             Route::get('/recent-activities', 'getRecentActivities')->name('activities');
         });
+        
     });
+    
 
 /*
 |--------------------------------------------------------------------------

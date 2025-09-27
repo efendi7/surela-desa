@@ -6,7 +6,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import TextArea from '@/Components/TextArea.vue';
 import InputError from '@/Components/InputError.vue';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { getFotoUrl, getFotoPendukungUrls } from '../utils';
 
 const props = defineProps({
@@ -34,10 +34,17 @@ const kategoriUsaha = [
   'Lainnya',
 ];
 
-if (props.isEdit && props.umkm) {
-  previewFotoProduk.value = props.umkm.foto_produk ? getFotoUrl(props.umkm.foto_produk) : null;
-  previewFotoPendukung.value = getFotoPendukungUrls(props.umkm.foto_pendukung);
-}
+// Watch for edit mode changes to update preview images
+watch(() => props.show, (newVal) => {
+  if (newVal && props.isEdit && props.umkm) {
+    previewFotoProduk.value = props.umkm.foto_produk ? getFotoUrl(props.umkm.foto_produk) : null;
+    previewFotoPendukung.value = getFotoPendukungUrls(props.umkm.foto_pendukung);
+  } else if (newVal && !props.isEdit) {
+    // Reset previews for create mode
+    previewFotoProduk.value = null;
+    previewFotoPendukung.value = [];
+  }
+});
 
 const handleFileSelect = (event, type) => {
   if (type === 'foto_produk') {
@@ -57,15 +64,34 @@ const handleFileSelect = (event, type) => {
     previewFotoPendukung.value = files.map(file => URL.createObjectURL(file));
   }
 };
+
+// Handle close - make sure we emit the close event properly
+const handleClose = () => {
+  emit('close');
+};
+
+// Handle form submit
+const handleSubmit = (event) => {
+  event.preventDefault();
+  emit('submit');
+};
 </script>
 
 <template>
-  <Modal :show="show" @close="emit('close')" max-width="4xl">
-    <form @submit.prevent="emit('submit')" class="flex flex-col max-h-[90vh] bg-gray-50 overflow-hidden">
+  <Modal 
+    :show="show" 
+    @close="handleClose" 
+    max-width="4xl"
+  >
+    <form @submit="handleSubmit" class="flex flex-col max-h-[90vh] bg-gray-50 overflow-hidden">
       <header class="px-6 py-4 border-b bg-white">
         <div class="flex justify-between items-center">
           <h2 class="text-lg font-medium text-gray-900">{{ title }}</h2>
-          <button type="button" @click="emit('close')" class="text-gray-400 hover:text-gray-600">
+          <button 
+            type="button" 
+            @click="handleClose" 
+            class="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 rounded-md p-1"
+          >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -84,9 +110,9 @@ const handleFileSelect = (event, type) => {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="space-y-4">
             <div>
-              <InputLabel :for="`form_nama_usaha_${isEdit}`" value="Nama Usaha *" />
+              <InputLabel :for="`form_nama_usaha_${isEdit ? 'edit' : 'create'}`" value="Nama Usaha *" />
               <TextInput
-                :id="`form_nama_usaha_${isEdit}`"
+                :id="`form_nama_usaha_${isEdit ? 'edit' : 'create'}`"
                 v-model="form.nama_usaha"
                 type="text"
                 class="mt-1 block w-full"
@@ -95,10 +121,11 @@ const handleFileSelect = (event, type) => {
               />
               <InputError class="mt-2" :message="form.errors.nama_usaha" />
             </div>
+            
             <div>
-              <InputLabel :for="`form_kategori_usaha_${isEdit}`" value="Kategori Usaha *" />
+              <InputLabel :for="`form_kategori_usaha_${isEdit ? 'edit' : 'create'}`" value="Kategori Usaha *" />
               <select
-                :id="`form_kategori_usaha_${isEdit}`"
+                :id="`form_kategori_usaha_${isEdit ? 'edit' : 'create'}`"
                 v-model="form.kategori_usaha"
                 class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                 required
@@ -110,10 +137,11 @@ const handleFileSelect = (event, type) => {
               </select>
               <InputError class="mt-2" :message="form.errors.kategori_usaha" />
             </div>
+            
             <div v-if="isEdit">
-              <InputLabel :for="`form_nama_pemilik_${isEdit}`" value="Nama Pemilik *" />
+              <InputLabel :for="`form_nama_pemilik_edit`" value="Nama Pemilik *" />
               <TextInput
-                :id="`form_nama_pemilik_${isEdit}`"
+                id="form_nama_pemilik_edit"
                 v-model="form.nama_pemilik"
                 type="text"
                 class="mt-1 block w-full"
@@ -122,10 +150,11 @@ const handleFileSelect = (event, type) => {
               />
               <InputError class="mt-2" :message="form.errors.nama_pemilik" />
             </div>
+            
             <div v-if="isEdit">
-              <InputLabel :for="`form_nik_pemilik_${isEdit}`" value="NIK Pemilik *" />
+              <InputLabel :for="`form_nik_pemilik_edit`" value="NIK Pemilik *" />
               <TextInput
-                :id="`form_nik_pemilik_${isEdit}`"
+                id="form_nik_pemilik_edit"
                 v-model="form.nik_pemilik"
                 type="text"
                 class="mt-1 block w-full"
@@ -135,11 +164,12 @@ const handleFileSelect = (event, type) => {
               <InputError class="mt-2" :message="form.errors.nik_pemilik" />
             </div>
           </div>
+          
           <div class="space-y-4">
             <div>
-              <InputLabel :for="`form_nomor_telepon_${isEdit}`" value="Nomor Telepon *" />
+              <InputLabel :for="`form_nomor_telepon_${isEdit ? 'edit' : 'create'}`" value="Nomor Telepon *" />
               <TextInput
-                :id="`form_nomor_telepon_${isEdit}`"
+                :id="`form_nomor_telepon_${isEdit ? 'edit' : 'create'}`"
                 v-model="form.nomor_telepon"
                 type="tel"
                 class="mt-1 block w-full"
@@ -148,10 +178,11 @@ const handleFileSelect = (event, type) => {
               />
               <InputError class="mt-2" :message="form.errors.nomor_telepon" />
             </div>
+            
             <div>
-              <InputLabel :for="`form_alamat_usaha_${isEdit}`" value="Alamat Usaha *" />
+              <InputLabel :for="`form_alamat_usaha_${isEdit ? 'edit' : 'create'}`" value="Alamat Usaha *" />
               <TextArea
-                :id="`form_alamat_usaha_${isEdit}`"
+                :id="`form_alamat_usaha_${isEdit ? 'edit' : 'create'}`"
                 v-model="form.alamat_usaha"
                 class="mt-1 block w-full"
                 rows="3"
@@ -160,10 +191,11 @@ const handleFileSelect = (event, type) => {
               />
               <InputError class="mt-2" :message="form.errors.alamat_usaha" />
             </div>
+            
             <div>
-              <InputLabel :for="`form_foto_produk_${isEdit}`" :value="isEdit ? 'Foto Sampul' : 'Foto Sampul *'" />
+              <InputLabel :for="`form_foto_produk_${isEdit ? 'edit' : 'create'}`" :value="isEdit ? 'Foto Sampul' : 'Foto Sampul *'" />
               <input
-                :id="`form_foto_produk_${isEdit}`"
+                :id="`form_foto_produk_${isEdit ? 'edit' : 'create'}`"
                 type="file"
                 accept="image/jpeg,image/png,image/jpg"
                 @change="handleFileSelect($event, 'foto_produk')"
@@ -171,14 +203,15 @@ const handleFileSelect = (event, type) => {
               />
               <p class="mt-1 text-xs text-gray-500">Format: JPG, PNG. Maksimal 2MB</p>
               <div v-if="previewFotoProduk" class="mt-2">
-                <img :src="previewFotoProduk" class="w-32 h-32 object-cover rounded-md border" />
+                <img :src="previewFotoProduk" class="w-32 h-32 object-cover rounded-md border" alt="Preview foto produk" />
               </div>
               <InputError class="mt-2" :message="form.errors.foto_produk" />
             </div>
+            
             <div>
-              <InputLabel :for="`form_foto_pendukung_${isEdit}`" value="Foto Pendukung (Maks. 3)" />
+              <InputLabel :for="`form_foto_pendukung_${isEdit ? 'edit' : 'create'}`" value="Foto Pendukung (Maks. 3)" />
               <input
-                :id="`form_foto_pendukung_${isEdit}`"
+                :id="`form_foto_pendukung_${isEdit ? 'edit' : 'create'}`"
                 type="file"
                 multiple
                 accept="image/jpeg,image/png,image/jpg"
@@ -188,20 +221,22 @@ const handleFileSelect = (event, type) => {
               <p class="mt-1 text-xs text-gray-500">Format: JPG, PNG. Maksimal 3 foto, masing-masing 2MB</p>
               <div v-if="previewFotoPendukung.length" class="mt-2 flex space-x-2">
                 <img
-                  v-for="foto in previewFotoPendukung"
-                  :key="foto"
+                  v-for="(foto, index) in previewFotoPendukung"
+                  :key="`preview-${index}`"
                   :src="foto"
                   class="w-16 h-16 object-cover rounded-md border"
+                  :alt="`Preview foto pendukung ${index + 1}`"
                 />
               </div>
               <InputError class="mt-2" :message="form.errors.foto_pendukung" />
             </div>
           </div>
         </div>
+        
         <div class="mt-4">
-          <InputLabel :for="`form_deskripsi_${isEdit}`" value="Deskripsi Usaha *" />
+          <InputLabel :for="`form_deskripsi_${isEdit ? 'edit' : 'create'}`" value="Deskripsi Usaha *" />
           <TextArea
-            :id="`form_deskripsi_${isEdit}`"
+            :id="`form_deskripsi_${isEdit ? 'edit' : 'create'}`"
             v-model="form.deskripsi"
             class="mt-1 block w-full"
             rows="4"
@@ -213,7 +248,7 @@ const handleFileSelect = (event, type) => {
       </div>
 
       <footer class="flex justify-end items-center px-6 py-4 border-t bg-white space-x-3">
-        <SecondaryButton @click="emit('close')" :disabled="form.processing">
+        <SecondaryButton @click="handleClose" :disabled="form.processing">
           Batal
         </SecondaryButton>
         <PrimaryButton type="submit" :disabled="form.processing">

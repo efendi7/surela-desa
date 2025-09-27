@@ -49,6 +49,25 @@ export const getNavigationSections = (user) => {
                         { name: 'Struktur Organisasi', route: ['profil.show', 'struktur-organisasi'] },
                     ],
                 },
+                {
+                    name: 'Direktori UMKM',
+                    route: 'public.umkm.*',
+                    routeLink: 'public.umkm.index',
+                    icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>`,
+                },
+                {
+                    name: 'Berita Desa',
+                    route: 'public.berita.*',
+                    routeLink: 'public.berita.index',
+                    icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5M6 7.5h3v3H6v-3Z" />`
+                },
+                // ✨ TAMBAHAN: Menu untuk Pengumuman Publik
+                {
+                    name: 'Pengumuman Desa',
+                    route: 'public.pengumuman.index',
+                    routeLink: 'public.pengumuman.index',
+                    icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688 0-1.25-.561-1.25-1.25 0-.688.562-1.25 1.25-1.25s1.25.562 1.25 1.25c0 .688-.562 1.25-1.25 1.25Zm0 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM10.34 4.34v1.25m6.25 2.5h-1.25m-10-1.25-1.25 1.25m12.5 0 1.25 1.25M4.34 11.59l-1.25-1.25m1.25 11.25 1.25-1.25m10 1.25 1.25-1.25m-1.25-10-1.25-1.25" />`
+                },
             ],
         },
     ];
@@ -83,12 +102,10 @@ export const getNavigationSections = (user) => {
                         },
                     ],
                 },
-                // --- PERUBAHAN DI SINI ---
-                // Mengubah Manajemen UMKM menjadi dropdown
                 {
                     name: 'Manajemen UMKM',
                     icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>`,
-                    route: 'admin.umkm.*', // Agar dropdown tetap aktif saat di halaman child
+                    route: 'admin.umkm.*',
                     children: [
                         {
                             name: 'Verifikasi Pendaftaran',
@@ -102,7 +119,13 @@ export const getNavigationSections = (user) => {
                         }
                     ]
                 },
-                // --- AKHIR PERUBAHAN ---
+                // ✨ PERUBAHAN: Nama menu diubah menjadi lebih umum
+                {
+                    name: 'Manajemen Postingan',
+                    route: 'admin.berita.index', // Route tetap sama karena controllernya satu
+                    routeLink: 'admin.berita.index',
+                    icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5M6 7.5h3v3H6v-3Z" />`
+                },
                 {
                     name: 'Manajemen Desa',
                     icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>`,
