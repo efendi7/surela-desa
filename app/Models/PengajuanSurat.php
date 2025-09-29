@@ -40,4 +40,10 @@ class PengajuanSurat extends Model
     {
         return $this->belongsTo(JenisSurat::class);
     }
+
+    public function admin()
+{
+    return $this->belongsTo(User::class, 'admin_id');
+}
+
 }

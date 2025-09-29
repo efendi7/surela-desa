@@ -1,50 +1,72 @@
 <script setup>
-import { usePengaduanUtils } from '@/Composables/usePengaduanUtils';
+import PengaduanTable from './PengaduanTable.vue';
+import Tooltip from '@/Components/Tooltip.vue';
 
 defineProps({
     pengaduanAktif: Array,
 });
 
 const emit = defineEmits(['view-detail', 'cancel']);
-const { getStatusClass, getStatusIcon, formatDate } = usePengaduanUtils();
 </script>
 
 <template>
-    <div class="border rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Judul Masalah</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Laporan</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y">
-                    <tr v-if="!pengaduanAktif?.length">
-                        <td colspan="4" class="px-6 py-16 text-center">
-                            <h3 class="text-sm font-medium text-gray-900">Tidak ada pengaduan aktif</h3>
-                            <p class="text-sm text-gray-500">Laporan yang sedang diproses akan muncul di sini.</p>
-                        </td>
-                    </tr>
-                    <tr v-else v-for="laporan in pengaduanAktif" :key="laporan.id" class="hover:bg-gray-50">
-                        <td class="px-4 py-4 font-medium text-gray-900 text-sm whitespace-nowrap">{{ laporan.judul }}</td>
-                         <td class="px-4 py-4 text-sm text-gray-700 whitespace-nowrap">{{ laporan.kategori || '-' }}</td>
-                        <td class="px-4 py-4 text-sm text-gray-700 whitespace-nowrap">{{ formatDate(laporan.created_at) }}</td>
-                        <td class="px-4 py-4">
-                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize" :class="getStatusClass(laporan.status)">
-                                {{ laporan.status }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-4 text-right space-x-2 whitespace-nowrap">
-                             <button @click="$emit('view-detail', laporan)" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">Detail</button>
-                             <button v-if="laporan.status === 'Dikirim'" @click="$emit('cancel', laporan)" class="text-red-600 hover:text-red-900 text-sm font-medium">Batalkan</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <PengaduanTable
+        :items="pengaduanAktif"
+        empty-title="Tidak ada pengaduan aktif"
+        empty-message="Laporan yang sedang diproses akan muncul di sini"
+    >
+        <template #empty-icon>
+            <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.996-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+        </template>
+
+        <template #actions="{ item }">
+            <!-- Desktop Version - Text Buttons -->
+            <div class="hidden md:flex space-x-2">
+                <button
+                    @click="$emit('view-detail', item)"
+                    class="inline-flex items-center px-3 py-1.5 border border-indigo-300 text-xs font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                >
+                    Detail
+                </button>
+                             
+                <button
+                    v-if="item.status === 'Dikirim' || item.status === 'pending'"
+                    @click="$emit('cancel', item)"
+                    class="inline-flex items-center px-3 py-1.5 border border-red-300 text-xs font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                >
+                    Batalkan
+                </button>
+            </div>
+
+            <!-- Mobile Version - Icon Buttons -->
+            <div class="md:hidden flex space-x-1">
+                <!-- Detail Button -->
+                <Tooltip text="Lihat Detail">
+                    <button
+                        @click="$emit('view-detail', item)"
+                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                    >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                </Tooltip>
+
+                <!-- Cancel Button -->
+                <Tooltip v-if="item.status === 'Dikirim' || item.status === 'pending'" text="Batalkan Pengaduan">
+                    <button
+                        @click="$emit('cancel', item)"
+                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                    >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </Tooltip>
+            </div>
+        </template>
+    </PengaduanTable>
 </template>

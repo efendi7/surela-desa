@@ -42,6 +42,7 @@ class Pengaduan extends Model
         'tanggal_selesai',
         'rating',
         'feedback',
+        'timeline', // Kolom JSON untuk menyimpan timeline pengaduan
     ];
 
     /**
@@ -55,6 +56,7 @@ class Pengaduan extends Model
         'tanggal_selesai' => 'date',
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
+        'timeline' => 'array', // Cast kolom timeline sebagai arrayw
     ];
 
     /**

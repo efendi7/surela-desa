@@ -1,7 +1,7 @@
 // resources/js/Composables/usePengajuanUtils.js
 
 export function usePengajuanUtils() {
-    
+    // === Badge / Status ===
     const getStatusClass = (status) => {
         const classes = {
             pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -22,6 +22,7 @@ export function usePengajuanUtils() {
         return icons[status] || 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
     };
 
+    // === Slugify untuk teks ===
     const slugify = (text) => {
         return text
             .toLowerCase()
@@ -29,16 +30,33 @@ export function usePengajuanUtils() {
             .replace(/[^\w-]+/g, '');
     };
 
+    // === Format Tanggal Ringkas ===
+    // contoh output: 27 Sep 25 22:26
     const formatDate = (dateString) => {
         if (!dateString) return '';
-        return new Date(dateString).toLocaleDateString('id-ID', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
+
+        const dateObj = new Date(dateString);
+
+        // tanggal ringkas
+        const datePart = dateObj.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: '2-digit',
+        });
+
+        // jam ringkas
+        const timePart = dateObj.toLocaleTimeString('id-ID', {
             hour: '2-digit',
             minute: '2-digit',
         });
+
+        return `${datePart} ${timePart}`;
     };
 
-    return { getStatusClass, getStatusIcon, slugify, formatDate };
+    return {
+        getStatusClass,
+        getStatusIcon,
+        slugify,
+        formatDate,
+    };
 }

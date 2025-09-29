@@ -46,13 +46,12 @@ class AdminPengaduanController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        // Statistik untuk dashboard
+        // Perbaiki statistik - gunakan lowercase sesuai database
         $statistik = [
             'total' => Pengaduan::count(),
-            'dikirim' => Pengaduan::where('status', 'Dikirim')->count(),
-            'diterima' => Pengaduan::where('status', 'Diterima')->count(),
-            'diproses' => Pengaduan::where('status', 'Diproses')->count(),
-            'selesai' => Pengaduan::where('status', 'Selesai')->count(),
+            'pending' => Pengaduan::where('status', 'pending')->count(),
+            'diproses' => Pengaduan::where('status', 'diproses')->count(),
+            'selesai' => Pengaduan::where('status', 'selesai')->count(),
         ];
 
         return Inertia::render('Admin/Pengaduan/Index', [
@@ -69,7 +68,7 @@ class AdminPengaduanController extends Controller
     public function riwayat(Request $request)
     {
         $query = Pengaduan::with(['user:id,name,nik', 'admin:id,name'])
-                          ->where('status', 'Selesai');
+                          ->where('status', 'selesai'); // lowercase
 
         // Filter berdasarkan kategori
         if ($request->filled('kategori')) {
@@ -105,30 +104,45 @@ class AdminPengaduanController extends Controller
     }
 
     /**
-     * Update status pengaduan
+     * Update status pengaduan dengan timeline
      */
     public function updateStatus(Request $request, Pengaduan $pengaduan)
     {
         $validated = $request->validate([
-            'status' => 'required|in:Dikirim,Diterima,Diproses,Selesai',
+            'status' => 'required|in:pending,diproses,selesai', // lowercase
         ]);
+
+        // Ambil timeline yang sudah ada atau buat array kosong
+        $timeline = $pengaduan->timeline ?? [];
+
+        // Siapkan pesan timeline berdasarkan status
+        $timelineMessage = $this->getTimelineMessage($validated['status']);
+
+        // Tambah item baru ke timeline
+        $timeline[] = [
+            'status' => $validated['status'],
+            'message' => $timelineMessage,
+            'timestamp' => now()->toISOString(),
+            'admin_name' => Auth::user()->name,
+        ];
 
         $pengaduan->update([
             'status' => $validated['status'],
             'admin_id' => Auth::id(),
+            'timeline' => $timeline,
         ]);
 
         return redirect()->back()->with('success', 'Status pengaduan berhasil diperbarui.');
     }
 
     /**
-     * Update detail lengkap pengaduan (status, prioritas, keterangan, dll)
+     * Update detail lengkap pengaduan (status, prioritas, keterangan, dll) dengan timeline
      */
     public function updateDetails(Request $request, Pengaduan $pengaduan)
     {
         $validated = $request->validate([
-            'status' => 'required|in:Dikirim,Diterima,Diproses,Selesai',
-            'prioritas' => 'required|in:Rendah,Sedang,Tinggi,Darurat',
+            'status' => 'required|in:pending,diproses,selesai', // lowercase
+            'prioritas' => 'required|in:rendah,sedang,tinggi,darurat', // lowercase
             'keterangan_admin' => 'nullable|string',
             'estimasi_selesai' => 'nullable|date',
             'foto_proses' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
@@ -140,13 +154,29 @@ class AdminPengaduanController extends Controller
         // Handle file upload foto proses
         if ($request->hasFile('foto_proses')) {
             // Hapus foto lama jika ada
-            if ($pengaduan->foto_proses && Storage::exists($pengaduan->foto_proses)) {
-                Storage::delete($pengaduan->foto_proses);
+            if ($pengaduan->foto_proses && Storage::disk('public')->exists($pengaduan->foto_proses)) {
+                Storage::disk('public')->delete($pengaduan->foto_proses);
             }
             // Simpan foto baru
-            $pathProses = $request->file('foto_proses')->store('public/pengaduan/proses');
-            $validated['foto_proses'] = $pathProses;
+            $validated['foto_proses'] = $request->file('foto_proses')->store('pengaduan/proses', 'public');
         }
+
+        // Ambil timeline yang sudah ada atau buat array kosong
+        $timeline = $pengaduan->timeline ?? [];
+
+        // Siapkan pesan timeline berdasarkan status dan keterangan
+        $timelineMessage = $this->getTimelineMessage($validated['status'], $validated['keterangan_admin'] ?? null);
+
+        // Tambah item baru ke timeline
+        $timeline[] = [
+            'status' => $validated['status'],
+            'message' => $timelineMessage,
+            'timestamp' => now()->toISOString(),
+            'admin_name' => Auth::user()->name,
+        ];
+
+        // Update timeline
+        $validated['timeline'] = $timeline;
 
         $pengaduan->update($validated);
 
@@ -160,7 +190,7 @@ class AdminPengaduanController extends Controller
     }
 
     /**
-     * Upload foto proses penanganan
+     * Upload foto proses penanganan dengan timeline
      */
     public function uploadProses(Request $request, Pengaduan $pengaduan)
     {
@@ -168,23 +198,50 @@ class AdminPengaduanController extends Controller
             'foto_proses' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        // Pastikan direktori ada
-        Storage::makeDirectory('public/pengaduan/proses');
-
         // Hapus foto lama jika ada
-        if ($pengaduan->foto_proses && Storage::exists($pengaduan->foto_proses)) {
-            Storage::delete($pengaduan->foto_proses);
+        if ($pengaduan->foto_proses && Storage::disk('public')->exists($pengaduan->foto_proses)) {
+            Storage::disk('public')->delete($pengaduan->foto_proses);
         }
 
         // Upload foto baru
-        $pathProses = $request->file('foto_proses')->store('public/pengaduan/proses');
+        $pathProses = $request->file('foto_proses')->store('pengaduan/proses', 'public');
         
+        // Update timeline
+        $timeline = $pengaduan->timeline ?? [];
+        $timeline[] = [
+            'status' => 'foto_uploaded',
+            'message' => 'Foto penanganan telah diunggah oleh admin.',
+            'timestamp' => now()->toISOString(),
+            'admin_name' => Auth::user()->name,
+        ];
+
         $pengaduan->update([
             'foto_proses' => $pathProses,
             'admin_id' => Auth::id(),
+            'timeline' => $timeline,
         ]);
 
         return redirect()->back()->with('success', 'Foto penanganan berhasil diunggah.');
+    }
+
+    /**
+     * Generate pesan timeline berdasarkan status
+     */
+    private function getTimelineMessage($status, $keterangan = null)
+    {
+        $messages = [
+            'pending' => 'Laporan pengaduan diterima dan menunggu peninjauan.',
+            'diproses' => 'Laporan pengaduan sedang dalam proses penanganan.',
+            'selesai' => 'Laporan pengaduan telah selesai ditangani.',
+        ];
+
+        $message = $messages[$status] ?? 'Status pengaduan diperbarui.';
+
+        if ($keterangan) {
+            $message .= ' Catatan: ' . $keterangan;
+        }
+
+        return $message;
     }
 
     /**
@@ -200,12 +257,12 @@ class AdminPengaduanController extends Controller
             $filePath = $pengaduan->foto_proses;
         }
 
-        if (!$filePath || !Storage::exists($filePath)) {
+        if (!$filePath || !Storage::disk('public')->exists($filePath)) {
             abort(404, 'Foto tidak ditemukan.');
         }
 
         // Return file langsung tanpa download
-        return response()->file(Storage::path($filePath));
+        return response()->file(Storage::disk('public')->path($filePath));
     }
 
     /**
@@ -224,11 +281,11 @@ class AdminPengaduanController extends Controller
             $fileName = 'foto_proses_' . $pengaduan->id . '_' . time() . '.jpg';
         }
 
-        if (!$filePath || !Storage::exists($filePath)) {
+        if (!$filePath || !Storage::disk('public')->exists($filePath)) {
             abort(404, 'File tidak ditemukan.');
         }
 
-        return Storage::download($filePath, $fileName);
+        return Storage::disk('public')->download($filePath, $fileName);
     }
 
     /**
@@ -249,13 +306,13 @@ class AdminPengaduanController extends Controller
     public function destroy(Pengaduan $pengaduan)
     {
         // Hapus foto bukti
-        if (Storage::exists($pengaduan->foto_bukti)) {
-            Storage::delete($pengaduan->foto_bukti);
+        if ($pengaduan->foto_bukti && Storage::disk('public')->exists($pengaduan->foto_bukti)) {
+            Storage::disk('public')->delete($pengaduan->foto_bukti);
         }
 
         // Hapus juga foto proses jika ada
-        if ($pengaduan->foto_proses && Storage::exists($pengaduan->foto_proses)) {
-            Storage::delete($pengaduan->foto_proses);
+        if ($pengaduan->foto_proses && Storage::disk('public')->exists($pengaduan->foto_proses)) {
+            Storage::disk('public')->delete($pengaduan->foto_proses);
         }
 
         $pengaduan->delete();

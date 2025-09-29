@@ -1,48 +1,59 @@
-// File: resources/js/Composables/usePengaduanUtils.js
-
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
+// resources/js/Composables/usePengaduanUtils.js
 
 export function usePengaduanUtils() {
-
-    /**
-     * Memformat string tanggal menjadi format yang mudah dibaca.
-     * Menggunakan `new Date()` agar lebih fleksibel menangani berbagai format.
-     */
-    const formatDate = (dateString) => {
-        if (!dateString) return '-';
-        return format(new Date(dateString), 'd MMMM yyyy, HH:mm', { locale: id });
-    };
-
-    /**
-     * Mendapatkan class CSS Tailwind berdasarkan status pengaduan.
-     */
+    // === Badge / Status ===
     const getStatusClass = (status) => {
-        const statusMap = {
-            'Dikirim': 'border-yellow-400 bg-yellow-50 text-yellow-700',
-            'Diterima': 'border-blue-400 bg-blue-50 text-blue-700',
-            'Diproses': 'border-indigo-400 bg-indigo-50 text-indigo-700',
-            'Selesai': 'border-green-400 bg-green-50 text-green-700',
+        const classes = {
+            pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+            diproses: 'bg-blue-100 text-blue-800 border-blue-200',
+            selesai: 'bg-green-100 text-green-800 border-green-200',
+            ditolak: 'bg-red-100 text-red-800 border-red-200',
         };
-        return statusMap[status] || 'border-gray-400 bg-gray-50 text-gray-700';
+        return classes[status] || 'bg-gray-100 text-gray-800 border-gray-200';
     };
 
-    /**
-     * Mendapatkan path SVG ikon berdasarkan status pengaduan.
-     */
     const getStatusIcon = (status) => {
-        const iconMap = {
-            'Dikirim': 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', // Jam
-            'Diterima': 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', // Ceklis
-            'Diproses': 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', // Refresh
-            'Selesai': 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z', // Lencana Ceklis
+        const icons = {
+            pending: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+            diproses: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15',
+            selesai: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+            ditolak: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z',
         };
-        return iconMap[status] || 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'; // Info
+        return icons[status] || 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
     };
 
-    /**
-     * Mendapatkan class CSS untuk warna teks berdasarkan prioritas.
-     */
+    // === Slugify untuk teks ===
+    const slugify = (text) => {
+        return text
+            .toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[^\w-]+/g, '');
+    };
+
+    // === Format Tanggal Ringkas ===
+    // contoh output: 27 Sep 25 22:26
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+
+        const dateObj = new Date(dateString);
+
+        // tanggal ringkas
+        const datePart = dateObj.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: '2-digit',
+        });
+
+        // jam ringkas
+        const timePart = dateObj.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+
+        return `${datePart} ${timePart}`;
+    };
+
+    // === Priority Class ===
     const getPriorityClass = (prioritas) => {
         const priorityMap = {
             'Darurat': 'text-red-700',
@@ -53,11 +64,11 @@ export function usePengaduanUtils() {
         return priorityMap[prioritas] || 'text-gray-600';
     };
 
-    // Mengekspor semua fungsi yang berguna
-    return { 
-        formatDate, 
-        getStatusClass, 
-        getStatusIcon, 
-        getPriorityClass 
+    return {
+        getStatusClass,
+        getStatusIcon,
+        slugify,
+        formatDate,
+        getPriorityClass,
     };
 }

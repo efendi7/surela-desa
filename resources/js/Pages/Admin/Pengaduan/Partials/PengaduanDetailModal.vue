@@ -23,9 +23,8 @@ const form = useForm({
     keterangan_admin: '',
     estimasi_selesai: '',
     foto_proses: null,
-    _method: 'patch', // Teknik untuk mengirim file via metode POST tapi dianggap PATCH oleh Laravel
+    _method: 'patch',
 });
-
 
 // --- WATCHER ---
 watch(() => props.pengaduan, (newVal) => {
@@ -65,25 +64,44 @@ const submitForm = () => {
 
 const closeModal = () => emit('close');
 
-// --- HELPERS ---
+// --- HELPERS - Ubah ke lowercase ---
 const getStatusBadgeClass = (status) => {
     const classes = {
-        'Dikirim': 'bg-blue-100 text-blue-800',
-        'Diterima': 'bg-yellow-100 text-yellow-800',
-        'Diproses': 'bg-orange-100 text-orange-800',
-        'Selesai': 'bg-green-100 text-green-800'
+        'pending': 'bg-blue-100 text-blue-800',
+        'diproses': 'bg-orange-100 text-orange-800',
+        'selesai': 'bg-green-100 text-green-800'
     };
     return classes[status] || 'bg-gray-100 text-gray-800';
 };
 
 const getPrioritasBadgeClass = (prioritas) => {
     const classes = {
-        'Rendah': 'bg-green-100 text-green-800',
-        'Sedang': 'bg-yellow-100 text-yellow-800',
-        'Tinggi': 'bg-orange-100 text-orange-800',
-        'Darurat': 'bg-red-100 text-red-800'
+        'rendah': 'bg-green-100 text-green-800',
+        'sedang': 'bg-yellow-100 text-yellow-800',
+        'tinggi': 'bg-orange-100 text-orange-800',
+        'darurat': 'bg-red-100 text-red-800'
     };
     return classes[prioritas] || 'bg-gray-100 text-gray-800';
+};
+
+// Helper untuk display text yang capitalize
+const getStatusDisplayText = (status) => {
+    const displays = {
+        'pending': 'Pending',
+        'diproses': 'Diproses', 
+        'selesai': 'Selesai'
+    };
+    return displays[status] || status;
+};
+
+const getPrioritasDisplayText = (prioritas) => {
+    const displays = {
+        'rendah': 'Rendah',
+        'sedang': 'Sedang',
+        'tinggi': 'Tinggi',
+        'darurat': 'Darurat'
+    };
+    return displays[prioritas] || prioritas;
 };
 </script>
 
@@ -121,13 +139,13 @@ const getPrioritasBadgeClass = (prioritas) => {
                                 <div class="flex justify-between items-center py-2">
                                     <span class="text-gray-500">Status</span>
                                     <span :class="getStatusBadgeClass(pengaduan.status)" class="px-2 py-1 rounded-full text-xs font-medium">
-                                        {{ pengaduan.status }}
+                                        {{ getStatusDisplayText(pengaduan.status) }}
                                     </span>
                                 </div>
                                 <div class="flex justify-between items-center py-2">
                                     <span class="text-gray-500">Prioritas</span>
                                     <span :class="getPrioritasBadgeClass(pengaduan.prioritas)" class="px-2 py-1 rounded-full text-xs font-medium">
-                                        {{ pengaduan.prioritas }}
+                                        {{ getPrioritasDisplayText(pengaduan.prioritas) }}
                                     </span>
                                 </div>
                             </div>
@@ -152,33 +170,33 @@ const getPrioritasBadgeClass = (prioritas) => {
                         </section>
 
                         <section class="p-4 bg-white rounded-lg shadow-sm">
-    <h3 class="text-base font-semibold text-gray-800 mb-3">Dokumentasi</h3>
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
-            <h4 class="text-sm font-medium text-gray-600 mb-2">Foto Bukti Warga</h4>
-            <div v-if="pengaduan.foto_bukti_url" class="aspect-video bg-gray-100 rounded-lg overflow-hidden border">
-                <a :href="pengaduan.foto_bukti_url" target="_blank">
-                    <img :src="pengaduan.foto_bukti_url" alt="Foto Bukti" class="w-full h-full object-cover hover:scale-105 transition-transform">
-                </a>
-            </div>
-            <div v-else class="aspect-video bg-gray-100 rounded-lg flex items-center justify-center text-sm text-gray-500 border-2 border-dashed">
-                Tidak ada foto bukti.
-            </div>
-        </div>
-        
-        <div>
-            <h4 class="text-sm font-medium text-gray-600 mb-2">Foto Penanganan (Admin)</h4>
-            <div v-if="pengaduan.foto_proses_url" class="aspect-video bg-gray-100 rounded-lg overflow-hidden border">
-                 <a :href="pengaduan.foto_proses_url" target="_blank">
-                    <img :src="pengaduan.foto_proses_url" alt="Foto Proses" class="w-full h-full object-cover hover:scale-105 transition-transform">
-                </a>
-            </div>
-            <div v-else class="aspect-video bg-gray-100 rounded-lg flex items-center justify-center text-sm text-gray-500 border-2 border-dashed">
-                Belum ada foto penanganan.
-            </div>
-        </div>
-    </div>
-</section>
+                            <h3 class="text-base font-semibold text-gray-800 mb-3">Dokumentasi</h3>
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div>
+                                    <h4 class="text-sm font-medium text-gray-600 mb-2">Foto Bukti Warga</h4>
+                                    <div v-if="pengaduan.foto_bukti_url" class="aspect-video bg-gray-100 rounded-lg overflow-hidden border">
+                                        <a :href="pengaduan.foto_bukti_url" target="_blank">
+                                            <img :src="pengaduan.foto_bukti_url" alt="Foto Bukti" class="w-full h-full object-cover hover:scale-105 transition-transform">
+                                        </a>
+                                    </div>
+                                    <div v-else class="aspect-video bg-gray-100 rounded-lg flex items-center justify-center text-sm text-gray-500 border-2 border-dashed">
+                                        Tidak ada foto bukti.
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <h4 class="text-sm font-medium text-gray-600 mb-2">Foto Penanganan (Admin)</h4>
+                                    <div v-if="pengaduan.foto_proses_url" class="aspect-video bg-gray-100 rounded-lg overflow-hidden border">
+                                         <a :href="pengaduan.foto_proses_url" target="_blank">
+                                            <img :src="pengaduan.foto_proses_url" alt="Foto Proses" class="w-full h-full object-cover hover:scale-105 transition-transform">
+                                        </a>
+                                    </div>
+                                    <div v-else class="aspect-video bg-gray-100 rounded-lg flex items-center justify-center text-sm text-gray-500 border-2 border-dashed">
+                                        Belum ada foto penanganan.
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
                     </div>
 
                     <div class="p-4 bg-white rounded-lg shadow-sm space-y-4 sticky top-0">
@@ -186,19 +204,18 @@ const getPrioritasBadgeClass = (prioritas) => {
                         <div>
                             <InputLabel for="status" value="Ubah Status" />
                             <select v-model="form.status" id="status" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                <option>Dikirim</option>
-                                <option>Diterima</option>
-                                <option>Diproses</option>
-                                <option>Selesai</option>
+                                <option value="pending">Pending</option>
+                                <option value="diproses">Diproses</option>
+                                <option value="selesai">Selesai</option>
                             </select>
                         </div>
                         <div>
                             <InputLabel for="prioritas" value="Set Prioritas" />
                             <select v-model="form.prioritas" id="prioritas" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                <option>Rendah</option>
-                                <option>Sedang</option>
-                                <option>Tinggi</option>
-                                <option>Darurat</option>
+                                <option value="rendah">Rendah</option>
+                                <option value="sedang">Sedang</option>
+                                <option value="tinggi">Tinggi</option>
+                                <option value="darurat">Darurat</option>
                             </select>
                         </div>
                         <div>

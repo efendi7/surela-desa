@@ -1,50 +1,71 @@
 <script setup>
-import { usePengaduanUtils } from '@/Composables/usePengaduanUtils';
+import PengaduanTable from './PengaduanTable.vue';
+import Tooltip from '@/Components/Tooltip.vue';
 
 defineProps({
     riwayatPengaduan: Array,
 });
 
 const emit = defineEmits(['view-detail', 'delete-history']);
-const { getStatusClass, getStatusIcon, formatDate } = usePengaduanUtils();
 </script>
 
 <template>
-    <div class="border rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Judul Masalah</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Laporan</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y">
-                    <tr v-if="!riwayatPengaduan?.length">
-                        <td colspan="4" class="px-6 py-16 text-center">
-                            <h3 class="text-sm font-medium text-gray-900">Belum ada riwayat</h3>
-                            <p class="text-sm text-gray-500">Laporan yang telah selesai akan muncul di sini.</p>
-                        </td>
-                    </tr>
-                    <tr v-else v-for="laporan in riwayatPengaduan" :key="laporan.id" class="hover:bg-gray-50">
-                        <td class="px-4 py-4 font-medium text-gray-900 text-sm whitespace-nowrap">{{ laporan.judul }}</td>
-                        <td class="px-4 py-4 text-sm text-gray-700 whitespace-nowrap">{{ laporan.kategori || '-' }}</td>
-                        <td class="px-4 py-4 text-sm text-gray-700 whitespace-nowrap">{{ formatDate(laporan.created_at) }}</td>
-                        <td class="px-4 py-4">
-                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize" :class="getStatusClass(laporan.status)">
-                                {{ laporan.status }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-4 text-right space-x-2 whitespace-nowrap">
-                             <button @click="$emit('view-detail', laporan)" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">Detail</button>
-                             <button @click="$emit('delete-history', laporan)" class="text-red-600 hover:text-red-900 text-sm font-medium">Hapus</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <PengaduanTable
+        :items="riwayatPengaduan"
+        empty-title="Belum ada riwayat pengaduan"
+        empty-message="Riwayat laporan Anda akan muncul di sini"
+    >
+        <template #empty-icon>
+            <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+        </template>
+        
+        <template #actions="{ item }">
+            <!-- Desktop Version - Text Buttons -->
+            <div class="hidden md:flex space-x-2">
+                <button
+                    @click="$emit('view-detail', item)"
+                    class="inline-flex items-center px-3 py-1.5 border border-indigo-300 text-xs font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                    Detail
+                </button>
+                
+                <button
+                    @click="$emit('delete-history', item)"
+                    class="inline-flex items-center px-3 py-1.5 border border-red-300 text-xs font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                    Hapus
+                </button>
+            </div>
+
+            <!-- Mobile Version - Icon Buttons -->
+            <div class="md:hidden flex space-x-1">
+                <!-- Detail Button -->
+                <Tooltip text="Lihat Detail">
+                    <button
+                        @click="$emit('view-detail', item)"
+                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                    >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                </Tooltip>
+
+                <!-- Delete Button -->
+                <Tooltip text="Hapus Riwayat">
+                    <button
+                        @click="$emit('delete-history', item)"
+                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                    >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </Tooltip>
+            </div>
+        </template>
+    </PengaduanTable>
 </template>
